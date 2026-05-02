@@ -48,4 +48,4 @@
 - **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/419) - *Status: PENDING REVIEW*
 - **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/420) - *Status: PENDING REVIEW*
 - **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/421) - *Status: PENDING REVIEW*
-- **Repo: git-pulse**: [SEC] Enhance Input Validation for getGitHubStarredRepos. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/422) - *Status: PENDING REVIEW*
+- **Repo: git-pulse**: [SEC] Enhance Input Validation for getGitHubStarredRepos. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/422) - *Status: APPROVED - Joseph liked this!*
