@@ -31,9 +31,7 @@ GROK_FALLBACK_API_KEY = os.environ.get('GROK_FALLBACK_API_KEY')
 DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY')
 FIREWORKS_API_KEY = os.environ.get('FIREWORKS_API_KEY')
 FIREWORKS2_API_KEY = os.environ.get('FIREWORKS2_API_KEY')
-NVIDIA_EXEC_API_KEY = os.environ.get('NVIDIA_EXEC_API_KEY')
-NVIDIA_SCAN_API_KEY = os.environ.get('NVIDIA_SCAN_API_KEY')
-NVIDIA_REVIEW_API_KEY = os.environ.get('NVIDIA_REVIEW_API_KEY')
+NVIDIA_API_KEY = os.environ.get('NVIDIA_API_KEY')
 GEMINI_NEWCRONS_API_KEY = os.environ.get('GEMINI_NEWCRONS_API_KEY')
 GROQ_NEWCRONS_API_KEY = os.environ.get('GROQ_NEWCRONS_API_KEY')
 APP_ID = os.environ.get('APP_ID')
@@ -640,9 +638,9 @@ def _try_gemini_api(prompt, key, temperature, model="gemini-2.5-flash"):
 
 # === TRIPLE-AI FUNCTIONS ===
 def query_gemini_scanner(prompt, temperature=0.2):
-    """Scanner AI — reads codebase, outputs text-only analysis. Uses NVIDIA NIM Gemma-4-31B with NVIDIA_SCAN_API_KEY."""
-    if NVIDIA_SCAN_API_KEY:
-        content, model_name = _try_nvidia_nim_api(prompt, NVIDIA_SCAN_API_KEY, temperature, model="google/gemma-4-31b-it", max_tokens=8192)
+    """Scanner AI — reads codebase, outputs text-only analysis. Uses NVIDIA NIM Gemma-4-31B, then Fireworks fallback."""
+    if NVIDIA_API_KEY:
+        content, model_name = _try_nvidia_nim_api(prompt, NVIDIA_API_KEY, temperature, model="google/gemma-4-31b-it", max_tokens=8192)
         if content: return content, model_name
 
     if GEMINI_FALLBACK_API_KEY:
@@ -730,9 +728,9 @@ def query_gemini_executor(prompt, temperature=0.1):
     return None, None
 
 def query_fireworks_executor(prompt, temperature=0.1):
-    """Executor AI — produces surgical code edits. Uses NVIDIA NIM DeepSeek V4 Pro with NVIDIA_EXEC_API_KEY, then Fireworks fallback."""
-    if NVIDIA_EXEC_API_KEY:
-        content, model_name = _try_nvidia_nim_api(prompt, NVIDIA_EXEC_API_KEY, temperature, model="deepseek-ai/deepseek-v4-pro", max_tokens=16384, thinking=True)
+    """Executor AI — produces surgical code edits. Uses NVIDIA NIM DeepSeek V4 Pro, then Fireworks fallback."""
+    if NVIDIA_API_KEY:
+        content, model_name = _try_nvidia_nim_api(prompt, NVIDIA_API_KEY, temperature, model="deepseek-ai/deepseek-v4-pro", max_tokens=16384, thinking=True)
         if content: return content, model_name
 
     if not FIREWORKS_API_KEY:
@@ -762,9 +760,9 @@ def query_fireworks_executor(prompt, temperature=0.1):
         return None, None
 
 def query_gemini_reviewer(prompt, temperature=0.1):
-    """Reviewer AI — validates edits, returns verdict JSON. Uses NVIDIA NIM Kimi K2.6 with NVIDIA_REVIEW_API_KEY, then Fireworks fallback."""
-    if NVIDIA_REVIEW_API_KEY:
-        content, model_name = _try_nvidia_nim_api(prompt, NVIDIA_REVIEW_API_KEY, temperature, model="moonshotai/kimi-k2.6", max_tokens=16384, thinking=True)
+    """Reviewer AI — validates edits, returns verdict JSON. Uses NVIDIA NIM Kimi K2.6, then Fireworks fallback."""
+    if NVIDIA_API_KEY:
+        content, model_name = _try_nvidia_nim_api(prompt, NVIDIA_API_KEY, temperature, model="moonshotai/kimi-k2.6", max_tokens=16384, thinking=True)
         if content: return content, model_name
 
     if FIREWORKS2_API_KEY:
@@ -938,9 +936,7 @@ def health():
             'PRIVATE_KEY': bool(PRIVATE_KEY and 'BEGIN RSA PRIVATE KEY' in PRIVATE_KEY),
             'WEBHOOK_SECRET': bool(WEBHOOK_SECRET),
             'GEMINI_KEY': bool(GEMINI_API_KEY),
-            'NVIDIA_EXEC_KEY': bool(NVIDIA_EXEC_API_KEY),
-            'NVIDIA_SCAN_KEY': bool(NVIDIA_SCAN_API_KEY),
-            'NVIDIA_REVIEW_KEY': bool(NVIDIA_REVIEW_API_KEY)
+            'NVIDIA_KEY': bool(NVIDIA_API_KEY)
         },
         'bot_login': BOT_LOGIN_CACHE or 'Not cached yet'
     }

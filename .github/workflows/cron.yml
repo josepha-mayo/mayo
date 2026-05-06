@@ -37,9 +37,7 @@ jobs:
           GEMINI3_FALLBACK_API_KEY: ${{ secrets.GEMINI3_FALLBACK_API_KEY }}
           FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
           FIREWORKS2_API_KEY: ${{ secrets.FIREWORKS2_API_KEY }}
-  NVIDIA_EXEC_API_KEY: ${{ secrets.NVIDIA_EXEC_API_KEY }}
-  NVIDIA_SCAN_API_KEY: ${{ secrets.NVIDIA_SCAN_API_KEY }}
-  NVIDIA_REVIEW_API_KEY: ${{ secrets.NVIDIA_REVIEW_API_KEY }}
+  NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
           BOT_REPO_NAME: ${{ secrets.BOT_REPO_NAME }}
           CO_AUTHOR_NAME: ${{ secrets.CO_AUTHOR_NAME }}
           CO_AUTHOR_EMAIL: ${{ secrets.CO_AUTHOR_EMAIL }}
