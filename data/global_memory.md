@@ -1,7 +1,6 @@
 # mayo Global Memory & Experience
 
-- *[ARCHIVED] 2 older lessons were archived to preserve focus.*
-- **Repo: git-pulse**: [SEC] Enhance Error Handling in AlgoVisualizationPage. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/395) - *Status: APPROVED - Joseph liked this!*
+- *[ARCHIVED] 1 older lessons were archived to preserve focus.*
 - **Repo: git-pulse**: [SEC] Enhance Error Handling in getServerSideToken Function. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/396) - *Status: APPROVED - Joseph liked this!*
 - **REJECTED by Reviewer**: Executor tried to add redundant code in fetchWithAuth function — blocked
 - **Repo: git-pulse**: [SEC] Validate token parameter and handle errors in fetchWithAuth function. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/397) - *Status: APPROVED - Joseph liked this!*
