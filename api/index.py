@@ -584,7 +584,7 @@ def _try_nvidia_nim_api(prompt, key, temperature, model="deepseek-ai/deepseek-v4
     }
     nim_payload = {
         "model": model,
-        "messages": [{"role": "user", "content": prompt}],
+        "messages": [{"role": "user", "content": [{"type": "text", "text": prompt}]}],
         "temperature": temperature,
         "max_tokens": max_tokens,
         "top_p": 1.00,

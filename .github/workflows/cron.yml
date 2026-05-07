@@ -25,7 +25,7 @@ jobs:
           APP_ID: ${{ secrets.APP_ID }}
           PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          GEMINI2_API_KEY: ${{ secrets.GEMINI2_API_KEY || secrets.GEMINI_API_KEY }}  # Forward as fallback if distinct not set
+          GEMINI2_API_KEY: ${{ secrets.GEMINI2_API_KEY || secrets.GEMINI_API_KEY }}
           GROK_API_KEY: ${{ secrets.GROK_API_KEY }}
           GEMINI_FALLBACK_API_KEY: ${{ secrets.GEMINI_FALLBACK_API_KEY }}
           GEMINI2_FALLBACK_API_KEY: ${{ secrets.GEMINI2_FALLBACK_API_KEY }}

@@ -31,16 +31,16 @@ def run_cron():
     
     try:
         # Initialize GitHub App
-    integration = GithubIntegration(auth=AppAuth(APP_ID, PRIVATE_KEY))
-    installations = integration.get_installations()
+        integration = GithubIntegration(auth=AppAuth(APP_ID, PRIVATE_KEY))
+        installations = integration.get_installations()
 
-    if not installations or installations.totalCount == 0:
-        print("DEBUG: No installations found")
-        return
+        if not installations or installations.totalCount == 0:
+            print("DEBUG: No installations found")
+            return
 
-    installation = installations[0]
-    token = integration.get_access_token(installation.id).token
-    gh = Github(auth=Token(token))
+        installation = installations[0]
+        token = integration.get_access_token(installation.id).token
+        gh = Github(auth=Token(token))
         
         # === PHASE 0: REVIEWER AUDITS PENDING REVIEWS ===
         print("DEBUG: Phase 0 — Auditing pending reviews")
@@ -614,6 +614,18 @@ candidates = [r for r in repos_data.get('repositories', [])
                 # Truncate each file to 7000 chars for the Executor
                 if len(content) > 7000:
                     content = content[:7000] + "\n...[TRUNCATED FOR LENGTH]..."
+                
+                # CRITICAL: Remove image file references to prevent NVIDIA NIM from trying to load images
+                import re
+                # Remove markdown image syntax: ![alt](image.png)
+                content = re.sub(r'!\[[^\]]*\]\([^\)]+\.(?:png|jpg|jpeg|gif|bmp|webp|svg)\)', '[IMAGE_REMOVED]', content, flags=re.IGNORECASE)
+                # Remove HTML img tags: <img src="image.png">
+                content = re.sub(r'<img[^>]*src=[\'"]([^\'"]*\.(?:png|jpg|jpeg|gif|bmp|webp|svg))[\'"][^>]*>', '[IMAGE_REMOVED]', content, flags=re.IGNORECASE)
+                # Remove CSS background-image: url(image.png)
+                content = re.sub(r'url\s*\(\s*[\'"]([^\'"]*\.(?:png|jpg|jpeg|gif|bmp|webp|svg))[\'"]\s*\)', 'url("[IMAGE_REMOVED]")', content, flags=re.IGNORECASE)
+                # Remove standalone image file references that might be mistaken as paths
+                content = re.sub(r'\b[\w/\\-]+\.(?:png|jpg|jpeg|gif|bmp|webp|svg)\b', '[IMAGE_FILE]', content, flags=re.IGNORECASE)
+                
                 file_contents += f"\n--- {tp} ---\n{content}\n"
         
         if not file_contents:
