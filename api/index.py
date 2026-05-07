@@ -592,30 +592,47 @@ def _try_nvidia_nim_api(prompt, key, temperature, model="deepseek-ai/deepseek-v4
     }
     if thinking:
         nim_payload["chat_template_kwargs"] = {"thinking": True}
-    print(f"DEBUG: Trying NVIDIA NIM with model={model}, key_prefix={key[:10]}...")
-    try:
-        r = requests.post(
-            "https://integrate.api.nvidia.com/v1/chat/completions",
-            json=nim_payload,
-            headers=headers,
-            timeout=300
-        )
-        r.raise_for_status()
-        result = r.json()
-        content = result['choices'][0]['message']['content']
-        display = f"NVIDIA NIM ({model})"
-        return content, display
-    except requests.exceptions.HTTPError as e:
+    
+    # Retry up to 3 times for transient errors (500, 502, 503, timeout)
+    for attempt in range(3):
+        print(f"DEBUG: Trying NVIDIA NIM with model={model}, key_prefix={key[:10]}... attempt {attempt+1}/3")
         try:
-            err_json = r.json()
-            err_body = err_json.get('error', {}).get('message', r.text[:500])
-        except:
-            err_body = r.text[:500] if r.text else "No response body"
-        print(f"NVIDIA NIM HTTP {r.status_code}: {err_body}")
-        return None, None
-    except Exception as e:
-        print(f"NVIDIA NIM API Error: {e}")
-        return None, None
+            r = requests.post(
+                "https://integrate.api.nvidia.com/v1/chat/completions",
+                json=nim_payload,
+                headers=headers,
+                timeout=300
+            )
+            if r.status_code >= 500:
+                # Server error, retry
+                print(f"NVIDIA NIM HTTP {r.status_code}, retrying...")
+                time.sleep(5)
+                continue
+            r.raise_for_status()
+            result = r.json()
+            content = result['choices'][0]['message']['content']
+            display = f"NVIDIA NIM ({model})"
+            return content, display
+        except requests.exceptions.HTTPError as e:
+            try:
+                err_json = r.json()
+                err_body = err_json.get('error', {}).get('message', r.text[:500])
+            except:
+                err_body = r.text[:500] if r.text else "No response body"
+            # Retry on 5xx errors
+            if r.status_code >= 500:
+                print(f"NVIDIA NIM HTTP {r.status_code}: {err_body}, retrying...")
+                time.sleep(5)
+                continue
+            print(f"NVIDIA NIM HTTP {r.status_code}: {err_body}")
+            return None, None
+        except Exception as e:
+            print(f"NVIDIA NIM API Error: {e}")
+            if attempt < 2:
+                time.sleep(5)
+                continue
+            return None, None
+    return None, None
 
 def _try_gemini_api(prompt, key, temperature, model="gemini-2.5-flash"):
     if not key: return None, None
