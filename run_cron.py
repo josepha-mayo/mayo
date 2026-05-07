@@ -106,7 +106,6 @@ def run_cron():
                     except:
                         pass
                     
-                    import random
                     random.shuffle(source_files)
                     target_paths = source_files[:3]  # Reduced from 7 to 3 to fit tighter payload limits
                     file_contents = ""
@@ -273,7 +272,6 @@ def run_cron():
         if should_run_timed_phase(current_memory, 'LAST_PR_JUDGE', 6):
             print("DEBUG: Phase 0.6 — Judging open PRs (6h cycle)")
             try:
-                import random
                 all_repos = [r for r in repos_data.get('repositories', []) if not r.get('fork')]
                 random.shuffle(all_repos)
                 repos_for_judge = [gh.get_repo(r['full_name']) for r in all_repos[:2]]  # Only 2 repos to save tokens
@@ -332,7 +330,6 @@ Output ONLY JSON: {{"reasonableness_score": 85, "action": "merge|close|skip", "r
         if should_run_timed_phase(current_memory, 'LAST_ISSUE_JUDGE', 6):
             print("DEBUG: Phase 0.7 — Judging open issues (6h cycle)")
             try:
-                import random
                 all_repos_i = [r for r in repos_data.get('repositories', []) if not r.get('fork')]
                 random.shuffle(all_repos_i)
                 repos_for_issues = [gh.get_repo(r['full_name']) for r in all_repos_i[:2]]  # Only 2 repos
@@ -387,7 +384,6 @@ Output ONLY JSON: {{"reasonableness_score": 70, "action": "fix|close|skip", "rea
                                     if r.get('name') == 'git-pulse']
                 
                 if issue_candidates:
-                    import random
                     chosen_repo_data = random.choice(issue_candidates)
                     proactive_repo = gh.get_repo(chosen_repo_data['full_name'])
                     
@@ -590,7 +586,6 @@ Write a helpful, concise reply. Be friendly and technical. If it's a question, a
                 return
         
         # Smart file selection: prioritize CODE files (2) over docs/config (1) to fit in API payload limits
-        import random
         code_files = [f for f in source_files if any(f.endswith(ext) for ext in CODE_EXTENSIONS)]
         doc_files = [f for f in source_files if any(f.endswith(ext) for ext in DOC_EXTENSIONS)]
         
@@ -612,15 +607,15 @@ Write a helpful, concise reply. Be friendly and technical. If it's a question, a
                     content = content[:5000] + "\n...[TRUNCATED FOR LENGTH]..."
                 
                 # CRITICAL: Remove image file references to prevent NVIDIA NIM from trying to load images
-                import re
+                import re as re_mod
                 # Remove markdown image syntax: ![alt](image.png)
-                content = re.sub(r'!\[[^\]]*\]\([^\)]+\.(?:png|jpg|jpeg|gif|bmp|webp|svg)\)', '[IMAGE_REMOVED]', content, flags=re.IGNORECASE)
+                content = re_mod.sub(r'!\[[^\]]*\]\([^\)]+\.(?:png|jpg|jpeg|gif|bmp|webp|svg)\)', '[IMAGE_REMOVED]', content, flags=re_mod.IGNORECASE)
                 # Remove HTML img tags: <img src="image.png">
-                content = re.sub(r'<img[^>]*src=[\'"]([^\'"]*\.(?:png|jpg|jpeg|gif|bmp|webp|svg))[\'"][^>]*>', '[IMAGE_REMOVED]', content, flags=re.IGNORECASE)
+                content = re_mod.sub(r'<img[^>]*src=[\'"]([^\'"]*\.(?:png|jpg|jpeg|gif|bmp|webp|svg))[\'"][^>]*>', '[IMAGE_REMOVED]', content, flags=re_mod.IGNORECASE)
                 # Remove CSS background-image: url(image.png)
-                content = re.sub(r'url\s*\(\s*[\'"]([^\'"]*\.(?:png|jpg|jpeg|gif|bmp|webp|svg))[\'"]\s*\)', 'url("[IMAGE_REMOVED]")', content, flags=re.IGNORECASE)
+                content = re_mod.sub(r'url\s*\(\s*[\'"]([^\'"]*\.(?:png|jpg|jpeg|gif|bmp|webp|svg))[\'"]\s*\)', 'url("[IMAGE_REMOVED]")', content, flags=re_mod.IGNORECASE)
                 # Remove standalone image file references that might be mistaken as paths
-                content = re.sub(r'\b[\w/\\-]+\.(?:png|jpg|jpeg|gif|bmp|webp|svg)\b', '[IMAGE_FILE]', content, flags=re.IGNORECASE)
+                content = re_mod.sub(r'\b[\w/\\-]+\.(?:png|jpg|jpeg|gif|bmp|webp|svg)\b', '[IMAGE_FILE]', content, flags=re_mod.IGNORECASE)
                 
                 file_contents += f"\n--- {tp} ---\n{content}\n"
         
@@ -928,7 +923,7 @@ Write a helpful, concise reply. Be friendly and technical. If it's a question, a
             
             pr = target_repo.create_pull(
                 title=f"[DRAFT] {final_title}",
-                body=f"Hey @{owner_login}! Joseph, I've found an improvement for you.\n\n{final_body}\n\n---\n*Validated by Triple-AI: {scanner_display} → {executor_display} → {reviewer_display}*\n\nGenerated autonomously by Mayo 🤖{co_author_line}\n\n**This is a DRAFT PR — review and merge when ready.**",
+                body=f"{final_body}\n\n---\n*Validated by Triple-AI: {scanner_display} → {executor_display} → {reviewer_display}*\n\nGenerated autonomously by Mayo 🤖{co_author_line}\n\n**This is a DRAFT PR — review and merge when ready.**",
                 head=final_branch,
                 base=target_repo.default_branch,
                 draft=True
