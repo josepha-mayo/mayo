@@ -2982,44 +2982,7 @@ This plan is specific enough for the Executor to find the exact code and make th
 
 ---
 
-## Cycle 1777420647
-**Scanner**: ### Step 1: Codebase Understanding
-The repository is for a developer-first social platform called GitPulse, built on top of GitHub. It allows users to share updates, ship releases, and discover trending projects. The target files, `apps/web/src/app/profile/[username]/stars/page.tsx` and `apps/web/src/app/signout/page.tsx`, are responsible for handling the display of a user's starred repositories and the sign-out functionality, respectively. The codebase uses React, Next.js, and TypeScript, following modern web development patterns and conventions.
-
-### Step 2: Deep Analysis
-Upon analyzing the codebase, several areas of improvement can be identified:
-- **Security**: There are potential security vulnerabilities, such as missing input validation and hardcoded secrets, which need to be addressed.
-- **Logic**: Off-by-one errors and missing null checks could lead to runtime errors or unexpected behavior.
-- **Performance**: Unnecessary loops and redundant API calls might impact the application's performance.
-- **Architecture**: The codebase could benefit from more consistent error handling patterns and API responses.
-- **Features**: Some functionality, like comprehensive input validation, seems to be missing or incomplete.
-- **Testing**: There appears to be a lack of thorough validation and error path handling in some areas.
-- **DX (Developer Experience)**: While the README provides setup instructions, some parts of the codebase lack clear documentation or comments.
-- **Consistency**: Naming conventions and import patterns are generally consistent, but there might be minor inconsistencies.
-- **Dead Code**: A preliminary scan does not reveal significant amounts of unreachable code or unused variables.
-
-### Step 3: Pick ONE Improvement
-Given the criteria for a meaningful improvement, one significant issue stands out: the lack of comprehensive input validation in the `getGitHubStarredRepos` function within `apps/web/src/app/profile/[username]/stars/page.tsx`. This function is critical for fetching and displaying a user's starred repositories, and without proper input validation, it might be vulnerable to errors or even security issues.
-
-### Step 4: Write the Executor's Plan
-**WHAT** to change: Implement comprehensive input validation for the `username` and `token` parameters in the `getGitHubStarredRepos` function.
-**WHERE**: In the `apps/web/src/app/profile/[username]/stars/page.tsx` file, specifically within the `getGitHubStarredRepos` function call.
-**WHY**: This matters because input validation is crucial for preventing potential security vulnerabilities, such as SQL injection or cross-site scripting (XSS), and for ensuring the function behaves as expected with different types of input.
-**HOW** to do it:
-1. Check if the `username` is not empty and matches the expected format (e.g., a string without special characters).
-2. Validate the `token` to ensure it is a valid GitHub token, potentially by checking its format or making a preliminary API call to verify its authenticity.
-3. Handle cases where the input validation fails, such as displaying an error message to the user or logging the issue for further investigation.
-4. Consider adding try-catch blocks around the API call to handle any unexpected errors that might occur during the execution of `getGitHubStarredRepos`.
-
-By following these steps, the Executor can enhance the security and reliability of the GitPulse application, particularly in how it handles user input and interacts with the GitHub API.
-
-**Executor**: {"title": "[SEC] Enhance Input Validation for getGitHubStarredRepos", "body": "### Problem / Gap\nThe `getGitHubStarredRepos` function in `apps/web/src/app/profile/[username]/stars/page.tsx` lacks comprehensive input validation for the `username` and `token` parameters, potentially leading to security vulnerabilities or unexpected behavior.\n\n### Solution & Insight\nTo address this issue, we will implement input validation for the `username` and `token` parameters. This includes checking if the `username` is not empty and matches the expected format, and verifying the authenticity of the `token` by making a preliminary API call.\n\n### Impact\nEnhancing input validation will significantly improve the security and reliability of the GitPulse application, particularly in handling user input and interacting with the GitHub API.", "branch_name": "bot/upgrade-1777420647", "edits": [{"file": "apps/web/src/app/profile/[username]/stars/page.tsx", "search": "let repos: any[] = []; \n  let hasError = false; \n  let ghUser = null;\n  \ntry { \n    if (token) {\n      ghUser = await getGitHubUser(username, token);\n      repos = await getGitHubStarredRepos(username, token, 1, 100) || [];\n    }\n  } catch (error: any) {", "replace": "let repos: any[] = []; \n  let hasError = false; \n  let ghUser = null;\n  \ntry { \n    if (token && typeof username === 'string' && username.length > 0) {\n      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {\n        throw new Error('Invalid username');\n      }\n      ghUser = await getGitHubUser(username, token);\n      if (!ghUser) {\n        throw new Error('Failed to fetch GitHub user');\n      }\n      repos = await getGitHubStarredRepos(username, token, 1, 100) || [];\n    } else {\n      throw new Error('Token or username is invalid');\n    }\n  } catch (error: any) {"}]}
-
-**Reviewer**: APPROVE: The proposed edits enhance input validation for the username and token parameters, addressing a real security concern in a substantive and functional manner.
-
----
-
-## Cycle 1778181691
+1778181691
 **Scanner**: ### Step 1: Codebase Understanding
 IntellectSafe is a comprehensive AI safety and security platform designed to protect users and organizations from LLM-related threats like prompt injections, hallucinations, and deepfakes using a multi-layered defense architecture.
 
@@ -3243,5 +3206,54 @@ The current logic uses values that are far too low for real estate (e.g., checki
 **Executor**: {"title": "[LOGIC] Fix price filtering thresholds and contact price handling", "body": "### Problem / Gap\nThe price filtering logic used hardcoded thresholds (0-50, 50-100, 100-200, 200+) that are far too low for real estate prices, causing the filter to exclude virtually all properties when any price range is selected. Additionally, properties with \"Contact for Price\" were unconditionally excluded (priceMatch = false), making them disappear entirely when a price filter is active.\n\n### Solution & Insight\nUpdated the numeric thresholds to realistic real estate values (50,000, 100,000, 200,000) so the filter actually matches typical property prices. Changed the handling of contact-price properties to always include them (priceMatch = true) so they remain visible regardless of the selected price range.\n\n### Impact\nThe price filter now functions correctly for real-world property data, and users can still see listings that require direct contact for pricing.", "branch_name": "bot/upgrade-1778215527", "edits": [{"file": "src/components/property-listings.tsx", "search": "      // price\n      let priceMatch = true;\n      if (priceRange) {\n        // Simple numeric extraction for basic filtering\n        const priceNum = parseInt(property.price.replace(/[^\\d]/g, \"\"));\n        if (!isNaN(priceNum)) {\n          if (priceRange === \"0-50\") priceMatch = priceNum < 50;\n          if (priceRange === \"50-100\") priceMatch = priceNum >= 50 && priceNum <= 100;\n          if (priceRange === \"100-200\") priceMatch = priceNum > 100 && priceNum <= 200;\n          if (priceRange === \"200+\") priceMatch = priceNum > 200;\n        } else if (property.price.toLowerCase().includes(\"contact\")) {\n            // Include contact for price in all ranges or specific ones? Let's just include them if no specific range matches, or exclude them.\n            priceMatch = false; // Exclude if we want numeric\n        }\n      }", "replace": "      // price\n      let priceMatch = true;\n      if (priceRange) {\n        // Simple numeric extraction for basic filtering\n        const priceNum = parseInt(property.price.replace(/[^\\d]/g, \"\"));\n        if (!isNaN(priceNum)) {\n          if (priceRange === \"0-50\") priceMatch = priceNum < 50000;\n          if (priceRange === \"50-100\") priceMatch = priceNum >= 50000 && priceNum <= 100000;\n          if (priceRange === \"100-200\") priceMatch = priceNum > 100000 && priceNum <= 200000;\n          if (priceRange === \"200+\") priceMatch = priceNum > 200000;\n        } else if (property.price.toLowerCase().includes(\"contact\")) {\n            // Include contact for price in all ranges or specific ones? Let's just include them if no specific range matches, or exclude them.\n            priceMatch = true;\n        }\n      }"}]}
 
 **Reviewer**: APPROVE: The edit fixes a clear domain logic bug: real estate price thresholds were hardcoded to 0-200, which would filter out all realistic properties. The replacement scales these to realistic currency values (50k-200k+) and correctly preserves 'Contact for Price' listings instead of hiding them. The diff is clean, targeted, and matches the Scanner's recommendation.
+
+---
+
+## Cycle 1778241734
+**Scanner**: ### Step 1: Codebase Understanding
+This repository is a personal portfolio website built using Next.js, designed to showcase projects and professional information. The target file, script.js, handles client-side interactivity such as mobile navigation toggling and header scroll effects, while package.json defines the project dependencies and build scripts. The codebase follows a modern React/Next.js framework convention with Tailwind CSS for styling.
+
+### Step 2: Deep Analysis
+
+**Security**: No immediate server-side vulnerabilities are present in the provided files as script.js is purely client-side UI logic. However, there is no input sanitization if any part of the script were to ever handle URL parameters or user-provided strings.
+
+**Logic**: In script.js, the mobile navigation toggle relies on the existence of menuBtn and navLinks. While there is a null check for the initial setup, the event listeners for the navigation links assume that the icon element inside menuBtn always exists. If the HTML structure changes slightly, the link-click handler will throw a runtime error when trying to access the icon.
+
+**Performance**: The window scroll event listener in script.js is attached directly to the window without throttling or debouncing. This causes the browser to execute the logic on every single pixel scrolled, which can lead to "jank" or performance degradation on lower-end devices.
+
+**Architecture**: The project uses a hybrid approach where Next.js (a framework that typically handles interactivity via React components) is being supplemented by a standalone script.js file. This creates a disconnect between the React state and the DOM state, making the UI harder to maintain and potentially causing hydration mismatches or unexpected behavior if Next.js re-renders the navigation component.
+
+**Features**: The portfolio lacks a way to handle accessibility (ARIA attributes) for the mobile menu, making it difficult for screen-reader users to know if the menu is expanded or collapsed.
+
+**Testing**: There is no error handling for the DOM manipulations; if an element is missing from the page, the script fails silently or crashes depending on the specific line.
+
+**DX**: The README contains merge conflict markers (HEAD and 9ec58ce), indicating a messy git history or a failed merge that was committed.
+
+**Consistency**: The use of a separate script.js in a Next.js project is inconsistent with the framework's standard pattern of using useEffect or client components for DOM interactions.
+
+**Dead Code**: None identified in the provided snippets.
+
+### Step 3: Pick ONE Improvement
+
+The most critical technical issue is the performance impact and potential for main-thread blocking caused by the unoptimized scroll event listener in script.js. While the logic is simple, attaching a raw listener to the window scroll event is a known performance anti-pattern that affects the "Interaction to Next Paint" (INP) metric and overall smoothness of the user experience.
+
+### Step 4: Write the Executor's Plan
+
+**WHAT**: Implement a requestAnimationFrame wrapper or a throttle mechanism for the window scroll event listener to prevent excessive function calls.
+
+**WHERE**: In script.js, inside the DOMContentLoaded listener, specifically the block starting with the comment Header Scroll Effect (Glassmorphism enhancer) where window.addEventListener('scroll', ...) is called.
+
+**WHY**: Currently, the scroll handler fires dozens of times per second during a scroll gesture. This forces the browser to perform DOM class manipulations (adding/removing the scrolled class) far more often than the screen can actually refresh (usually 60Hz), leading to wasted CPU cycles and potential stuttering.
+
+**HOW**:
+1. Create a boolean flag variable (e.g., ticking) initialized to false.
+2. Wrap the existing scroll logic (the if/else block checking window.scrollY) inside a function.
+3. Modify the window scroll event listener so that it first checks if the ticking flag is false.
+4. If false, set ticking to true and use requestAnimationFrame to schedule the execution of the scroll logic.
+5. Inside the requestAnimationFrame callback, execute the logic to add or remove the scrolled class from the nav element, and then set the ticking flag back to false.
+
+**Executor**: {"title": "[PERF] Throttle scroll event listener with requestAnimationFrame", "body": "### Problem / Gap\nThe window scroll event listener fires on every pixel scrolled, causing excessive DOM class manipulations and potential main-thread jank, especially on lower-end devices.\n\n### Solution & Insight\nWrap the scroll handler in a requestAnimationFrame throttle using a `ticking` flag. This ensures the class toggling runs at most once per frame, aligning with the browser's refresh rate and reducing wasted CPU cycles.\n\n### Impact\nImproves scroll performance, reduces layout thrashing, and enhances the Interaction to Next Paint (INP) metric.", "branch_name": "bot/upgrade-1778241734", "edits": [{"file": "script.js", "search": "    // Header Scroll Effect (Glassmorphism enhancer)\n    const nav = document.querySelector('nav');\n    window.addEventListener('scroll', () => {\n        if (window.scrollY > 50) {\n            nav.classList.add('scrolled');\n        } else {\n            nav.classList.remove('scrolled');\n        }\n    });", "replace": "    // Header Scroll Effect (Glassmorphism enhancer)\n    const nav = document.querySelector('nav');\n    let ticking = false;\n    window.addEventListener('scroll', () => {\n        if (!ticking) {\n            window.requestAnimationFrame(() => {\n                if (window.scrollY > 50) {\n                    nav.classList.add('scrolled');\n                } else {\n                    nav.classList.remove('scrolled');\n                }\n                ticking = false;\n            });\n            ticking = true;\n        }\n    });"}]}
+
+**Reviewer**: APPROVE: The proposed edit correctly implements a requestAnimationFrame throttle for the scroll event listener, directly addressing the performance anti-pattern identified in the Scanner's analysis. The logic is sound, the search text matches the original file content exactly, and the change is substantive and production-ready.
 
 ---
