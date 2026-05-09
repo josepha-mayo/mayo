@@ -1451,7 +1451,7 @@ Instructions:
         memory_block = format_memory_block({"files_read": all_files_for_mem})
         
         model_display = f" ({reviewer_model})" if reviewer_model else ""
-        issue_obj.create_comment(f"🛡️ **Reviewer (Mayo){model_display}:**\n{plan}{memory_block}")
+        issue_obj.create_comment(f"{plan}{memory_block}")
         
         # Save Joseph's feedback to memory
         try:
@@ -1833,7 +1833,7 @@ Instructions:
         memory_block = format_memory_block({"files_read": all_files_for_mem})
         
         model_display = f" ({reviewer_model})" if reviewer_model else ""
-        pr.create_issue_comment(f"🛡️ **Reviewer (Mayo){model_display}:**\n{plan}{memory_block}")
+        pr.create_issue_comment(f"{plan}{memory_block}")
         
         # Save Joseph's feedback to memory
         try:
@@ -2008,10 +2008,10 @@ OUTPUT FORMAT (Strict JSON, nothing else):
                     success, commit_err = commit_changes_via_api(repo, branch, file_changes, commit_title)
                     executor_model_display = f" (via {used_model})" if used_model else ""
                     if success:
-                        msg = f"✅ Committed changes to `{branch}`{executor_model_display}.\n\nDescription: {final_payload.get('body', commit_title)}"
+                        msg = f"Committed changes to `{branch}`{executor_model_display}.\n\nDescription: {final_payload.get('body', commit_title)}"
                         if failed_edits:
                             safe_preview = [f"- {fe}" for i, fe in enumerate(failed_edits) if i < 5]
-                            msg += f"\n\n⚠️ Some edits failed to match:\n" + "\n".join(safe_preview)
+                            msg += f"\n\nSome edits failed to match:\n" + "\n".join(safe_preview)
                         pr.create_issue_comment(msg)
                     else:
                         # DISABLED: Triggers email spam
