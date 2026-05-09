@@ -3315,3 +3315,64 @@ HOW to do it:
 **Reviewer**: APPROVE: The Executor fixed the broken favicon placeholder by replacing it with a valid asset path and bundled it with meaningful additions: viewport and theme-color meta tags. This addresses previous feedback to avoid trivial single-line changes. The search string matches the provided original file content exactly, the replacement is valid JSX, and the change is substantive (3+ lines).
 
 ---
+
+## Cycle 1778302671
+**Scanner**: ### Step 1: Codebase Understanding
+IntellectSafe is a production-grade AI safety and security platform that implements a five-layer defense architecture to protect users and organizations from prompt injections, hallucinations, PII leaks, and deepfakes. It utilizes a multi-model LLM Council for consensus-based validation and a universal proxy to intercept and secure traffic to frontier AI models.
+
+The target file, backend/app/services/governance.py, contains the GovernanceEngine class. This service is responsible for aggregating data from the database to generate risk reports and incident reports, providing the analytical backend for the platform's compliance and audit dashboards.
+
+The codebase uses FastAPI for the backend, SQLAlchemy for ORM, and Pydantic for data validation. It follows a service-oriented architecture where business logic is decoupled from API routes.
+
+### Step 2: Deep Analysis
+
+**Security**:
+The current implementation of the GovernanceEngine does not perform any input validation or sanitization on the start_date and end_date parameters. While these are typed as Optional[datetime], if they are passed from an API endpoint as raw strings or manipulated objects, it could lead to unexpected behavior. However, the primary security risk is the lack of pagination or limits on the queries.
+
+**Logic**:
+There is a significant logic flaw in the GovernanceEngine constructor. It checks if the db.bind is None and, if so, attempts to re-initialize self.db by creating a new Session instance using the engine. This is a dangerous pattern because it replaces the injected session (which is likely managed by a FastAPI dependency for transaction control) with a manually managed session that may not be closed properly, leading to connection leaks.
+
+**Performance**:
+The generate_risk_report and generate_incident_report methods suffer from a severe N+1 query pattern. Specifically, the code iterates through every member of the RiskLevel, ModuleType, and IncidentStatus enums and executes a separate database count query for each member. For example, in risk_distribution, it runs a query for every possible risk level. In module_breakdown, it runs a query for every module type and then another query for the average risk score of that module. This results in dozens of round-trips to the database for a single report.
+
+**Architecture**:
+The error handling is minimal. If a database connection fails during one of the many aggregate queries, the entire report generation fails without a graceful fallback or specific error context.
+
+**Consistency**:
+The use of datetime.utcnow() is deprecated in newer Python versions in favor of timezone-aware datetimes, though it is consistent within this file.
+
+**Dead Code**:
+No obvious dead code was identified in the provided snippet.
+
+### Step 3: Pick ONE Improvement
+I have identified a critical performance and scalability issue: the N+1 query pattern in the report generation methods.
+
+The current implementation executes a separate SQL query for every single enum value (RiskLevel, ModuleType, IncidentStatus) to calculate distributions. As the number of modules or risk levels grows, the latency of generating a report increases linearly. This can be replaced with a single GROUP BY query per metric, reducing the database load from O(N) queries to O(1) per section.
+
+This is a meaningful improvement because it prevents database exhaustion under load and significantly reduces the response time for the Governance dashboard.
+
+### Step 4: Executor's Plan
+
+**WHAT to change**:
+Refactor the data aggregation logic in the generate_risk_report and generate_incident_report methods to use SQLAlchemy group_by and func.count instead of looping through enums and executing individual queries.
+
+**WHERE to change**:
+In backend/app/services/governance.py, within the GovernanceEngine class:
+1. Inside the generate_risk_report method, specifically the sections calculating risk_distribution, verdict_distribution, and module_breakdown.
+2. Inside the generate_incident_report method, specifically the sections calculating severity_distribution, status_distribution, and module_breakdown.
+
+**WHY this matters**:
+The current implementation performs a "Query in a Loop" (N+1 problem). If there are 5 risk levels, 5 module types, and 4 verdicts, the system makes over 15 separate database calls to generate one report. By using GROUP BY, the system can retrieve all distribution data in 3 queries, regardless of how many enum members exist. This reduces latency and prevents the database from being overwhelmed by redundant requests.
+
+**HOW to do it**:
+1. In generate_risk_report, replace the loop over RiskLevel with a single query that selects RiskScore.risk_level and func.count, grouped by RiskScore.risk_level. Convert the resulting list of tuples into the risk_distribution dictionary.
+2. Repeat this process for the verdict_distribution by grouping by RiskScore.verdict.
+3. For the module_breakdown, replace the loop over ModuleType with a single query that selects RiskScore.module_type, func.count, and func.avg(RiskScore.risk_score), grouped by RiskScore.module_type.
+4. In generate_incident_report, apply the same logic: replace the loops over RiskLevel (for severity), IncidentStatus (for status), and ModuleType (for module breakdown) with grouped queries.
+5. Ensure that the final dictionary formats remain identical to the original implementation to avoid breaking the frontend API contract.
+
+**Executor**: {"title": "[PERF] Optimize governance risk report generation with GROUP BY queries", "body": "### Problem / Gap\nThe `generate_risk_report` method in `GovernanceEngine` suffers from an N+1 query pattern. It loops over every `RiskLevel`, verdict string, and `ModuleType` enum, executing a separate `COUNT` query for each. This results in over 15 database round-trips per report, causing linear latency growth and potential database exhaustion under load.\n\n### Solution & Insight\nReplaced the per-enum loops with single `GROUP BY` queries using SQLAlchemy's `func.count` and `func.avg`. The risk distribution, verdict distribution, and module breakdown are now computed in three queries total, regardless of the number of enum members. The output dictionary structures remain identical to preserve the frontend API contract.\n\n### Impact\n- Reduces database queries from O(N) to O(1) per metric.\n- Significantly lowers report generation latency and database load.\n- No change to the API response shape.\n\nNote: The `generate_incident_report` method was truncated in the provided file content, so only the risk report was optimized. The same pattern should be applied to the incident report when the full file is available.", "branch_name": "bot/upgrade-1778302671", "edits": [{"file": "backend/app/services/governance.py", "search": "        # Risk level distribution\n        risk_distribution = {}\n        for level in RiskLevel:\n            count = query.filter(RiskScore.risk_level == level).count()\n            risk_distribution[level.value] = count\n\n        # Verdict distribution\n        verdict_distribution = {}\n        for verdict in [\"blocked\", \"allowed\", \"flagged\", \"sanitized\"]:\n            count = query.filter(RiskScore.verdict == verdict).count()\n            verdict_distribution[verdict] = count\n\n        # Module breakdown\n        module_breakdown = {}\n        for module in ModuleType:\n            module_query = query.filter(RiskScore.module_type == module)\n            module_count = module_query.count()\n            if module_count > 0:\n                module_avg = (\n                    module_query.with_entities(func.avg(RiskScore.risk_score)).scalar()\n                    or 0.0\n                )\n                module_breakdown[module.value] = {\n                    \"count\": module_count,\n                    \"avg_risk_score\": round(module_avg, 2),\n                }", "replace": "        # Risk level distribution\n        risk_distribution = {level.value: 0 for level in RiskLevel}\n        risk_level_counts = query.with_entities(\n            RiskScore.risk_level, func.count(RiskScore.id)\n        ).group_by(RiskScore.risk_level).all()\n        for level, count in risk_level_counts:\n            risk_distribution[level.value] = count\n\n        # Verdict distribution\n        verdict_distribution = {\n            \"blocked\": 0,\n            \"allowed\": 0,\n            \"flagged\": 0,\n            \"sanitized\": 0,\n        }\n        verdict_counts = query.with_entities(\n            RiskScore.verdict, func.count(RiskScore.id)\n        ).group_by(RiskScore.verdict).all()\n        for verdict, count in verdict_counts:\n            if verdict in verdict_distribution:\n                verdict_distribution[verdict] = count\n\n        # Module breakdown\n        module_breakdown = {}\n        module_stats = query.with_entities(\n            RiskScore.module_type,\n            func.count(RiskScore.id),\n            func.avg(RiskScore.risk_score),\n        ).group_by(RiskScore.module_type).all()\n        for module_type, count, avg_score in module_stats:\n            if count > 0:\n                module_breakdown[module_type.value] = {\n                    \"count\": count,\n                    \"avg_risk_score\": round(avg_score or 0.0, 2),\n                }"}]}
+
+**Reviewer**: APPROVE: The edits correctly address the N+1 query performance issue in generate_risk_report by replacing enum-looping count queries with SQLAlchemy group_by/aggregate queries. The search text matches the original file exactly, the replacement preserves the output dictionary structure and keys (including initializing missing keys to 0), and the logic is functionally equivalent while being significantly more efficient. The change is substantive, aligned with the Scanner's plan, and safe for the repo.
+
+---
