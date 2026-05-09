@@ -1277,22 +1277,21 @@ Rules:
                         raise Exception(f"API {resp.status_code}")
                 except Exception as review_err:
                     print(f"Review API exception: {review_err}")
-                    # Fallback: post as regular comment with suggestion blocks
-                    model_display = f" ({reviewer_model})" if reviewer_model else ""
-                    fallback = f"🤖 **Automated Code Review{model_display}**\n\n{summary}\n\n"
-                    for enum_s, s in enumerate(suggestions):
-                        if enum_s >= 5: break
-                        fallback += f"**{s.get('file', '')}** (L{s.get('line', '?')}): {s.get('reason', '')}\n"
-                        fallback += f"```suggestion\n{s.get('replacement', '')}\n```\n\n"
-                    pr.create_issue_comment(f"{fallback}{memory_block}")
+                    # DISABLED: Review comments trigger email to PR participants
+                    # pr.create_issue_comment(f"{fallback}{memory_block}")
+                    pass
             else:
                 # No inline suggestions, just post summary
                 model_display = f" ({reviewer_model})" if reviewer_model else ""
-                pr.create_issue_comment(f"🤖 **Automated Code Review{model_display}**\n\n{summary}{memory_block}")
+                # DISABLED: Review comments trigger email
+                # pr.create_issue_comment(f"🤖 **Automated Code Review{model_display}**\n\n{summary}{memory_block}")
+                pass
         elif review_raw:
             # Gemini didn't return structured JSON, post as plain review
             model_display = f" ({reviewer_model})" if reviewer_model else ""
-            pr.create_issue_comment(f"🤖 **Automated Code Review{model_display}**\n\n{review_raw}{memory_block}")
+            # DISABLED: Review comments trigger email
+            # pr.create_issue_comment(f"🤖 **Automated Code Review{model_display}**\n\n{review_raw}{memory_block}")
+            pass
             
     except Exception as e:
         import traceback
@@ -1301,7 +1300,9 @@ Rules:
         try:
             # Try to report error to user if possible
             if 'pr' in locals():
-                pr.create_issue_comment(f"⚠️ **Bot Error**: Something went wrong.\n\n```\n{err_msg}\n```")
+                # DISABLED: Error comment triggers email
+                # pr.create_issue_comment(f"⚠️ **Bot Error**: Something went wrong.\n\n```\n{err_msg}\n```")
+                pass
         except:
             pass
 
@@ -1465,6 +1466,7 @@ Instructions:
         
         # 6. Execute Code Changes (Executor)
         if "[REQUIRES_EXECUTION]" in plan:
+            used_model = None
             executor_model_display = f" ({used_model})" if used_model else ""
             issue_obj.create_comment(f"⚡ *Executor{executor_model_display} is now writing the code changes...*")
             

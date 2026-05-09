@@ -198,11 +198,11 @@ def run_cron():
                                         draft=True
                                     )
                                     print(f"DEBUG: PR created from approved issue: {pr.html_url}")
-                                    
-                                    # Close the issue
-                                    issue.create_comment(f"✅ Done! PR created: {pr.html_url}")
-                                    issue.edit(state='closed')
-                                    
+
+                                    # DISABLED: Closing issue triggers email to watchers
+                                    # issue.create_comment(f"✅ Done! PR created: {pr.html_url}")
+                                    # issue.edit(state='closed')
+
                                     # Update memory
                                     mem_file = bot_repo.get_contents("data/global_memory.md")
                                     mem = mem_file.decoded_content.decode('utf-8')
@@ -305,18 +305,21 @@ Output ONLY JSON: {{"reasonableness_score": 85, "action": "merge|close|skip", "r
                                     action = verdict.get('action', 'skip')
                                     reason = verdict.get('reason', '')
                                     
-                                    if action == 'merge' and score >= 85:
-                                        try:
-                                            pr.merge(merge_method='squash')
-                                            pr.create_issue_comment(f"✅ Auto-merged by Mayo (score: {score}/100)\n\n{reason}")
-                                            print(f"DEBUG: Auto-merged PR #{pr.number} on {judge_repo.name} (score: {score})")
-                                        except Exception as e:
-                                            print(f"DEBUG: Merge failed: {e}")
-                                    elif action == 'close' and score <= 30:
-                                        pr.edit(state='closed')
-                                        pr.create_issue_comment(f"❌ Closed by Mayo — not reasonable (score: {score}/100)\n\n{reason}")
-                                        print(f"DEBUG: Auto-closed PR #{pr.number} on {judge_repo.name} (score: {score})")
-                                        pr_action_taken = True
+                                    # DISABLED: Auto-merge triggers email to watchers
+                                    # if action == 'merge' and score >= 85:
+                                    #     try:
+                                    #         pr.merge(merge_method='squash')
+                                    #         pr.create_issue_comment(f"✅ Auto-merged by Mayo (score: {score}/100)\n\n{reason}")
+                                    #         print(f"DEBUG: Auto-merged PR #{pr.number} on {judge_repo.name} (score: {score})")
+                                    #     except Exception as e:
+                                    #         print(f"DEBUG: Merge failed: {e}")
+                                    # DISABLED: Auto-close triggers email to watchers
+                                    # if action == 'close' and score <= 30:
+                                    #     pr.edit(state='closed')
+                                    #     pr.create_issue_comment(f"❌ Closed by Mayo — not reasonable (score: {score}/100)\n\n{reason}")
+                                    #     print(f"DEBUG: Auto-closed PR #{pr.number} on {judge_repo.name} (score: {score})")
+                                    #     pr_action_taken = True
+                                    pass
                     except Exception as e:
                         print(f"DEBUG: Error judging PRs on {judge_repo.name}: {e}")
                 
@@ -358,14 +361,17 @@ Output ONLY JSON: {{"reasonableness_score": 70, "action": "fix|close|skip", "rea
                                     action = verdict.get('action', 'skip')
                                     reason = verdict.get('reason', '')
                                     
-                                    if action == 'close' and score <= 30:
-                                        issue.edit(state='closed')
-                                        issue.create_comment(f"❌ Closed by Mayo — not actionable (score: {score}/100)\n\n{reason}")
-                                        print(f"DEBUG: Auto-closed issue #{issue.number} on {issue_repo.name}")
-                                    elif action == 'fix' and score >= 70:
-                                        issue.create_comment(f"🔧 Mayo is working on a fix for this... (score: {score}/100)")
-                                        print(f"DEBUG: Issue #{issue.number} on {issue_repo.name} queued for auto-fix (score: {score})")
-                                        issue_action_taken = True
+                                    # DISABLED: Auto-close triggers email to watchers
+                                    # if action == 'close' and score <= 30:
+                                    #     issue.edit(state='closed')
+                                    #     issue.create_comment(f"❌ Closed by Mayo — not actionable (score: {score}/100)\n\n{reason}")
+                                    #     print(f"DEBUG: Auto-closed issue #{issue.number} on {issue_repo.name}")
+                                    # DISABLED: Issue comment triggers email to watchers
+                                    # elif action == 'fix' and score >= 70:
+                                    #     issue.create_comment(f"🔧 Mayo is working on a fix for this... (score: {score}/100)")
+                                    #     print(f"DEBUG: Issue #{issue.number} on {issue_repo.name} queued for auto-fix (score: {score})")
+                                    #     issue_action_taken = True
+                                    pass
                     except Exception as e:
                         print(f"DEBUG: Error judging issues on {issue_repo.name}: {e}")
                 
@@ -663,7 +669,6 @@ Write a helpful, concise reply. Be friendly and technical. If it's a question, a
                 
                 owner_login = target_repo.owner.login
                 full_body = (
-                    f"Hey @{owner_login}! 👋\n\n"
                     f"The Scanner AI found something on **{target_repo.name}** that needs your input before I can proceed.\n\n"
                     f"---\n\n{issue_body}\n\n"
                     f"---\n\n"
