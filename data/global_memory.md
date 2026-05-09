@@ -1,11 +1,6 @@
 # mayo Global Memory & Experience
 
-- *[ARCHIVED] 2 older lessons were archived to preserve focus.*
-- **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/401) - *Status: APPROVED - Joseph liked this!*
-- **REJECTED by Reviewer**: Executor tried to enhance input validation in ActivityPage but introduced ineffective validation logic — blocked
-- **REJECTED by Reviewer**: Executor tried to enhance token validation in getServerSideToken but lacked comprehensive validation logic — blocked
-- **REJECTED by Reviewer**: Executor tried to fix SQL injection vulnerability in Prisma database queries but used potentially incorrect syntax — blocked
-- **REJECTED by Reviewer**: Executor tried to fix SQL injection vulnerability in Prisma database queries but used potentially incorrect syntax — blocked
+- *[ARCHIVED] 1 older lessons were archived to preserve focus.*
 - **Repo: git-pulse**: [SEC] Enhance Input Validation and Error Handling in GitHub Profile Update API. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/402) - *Status: APPROVED - Joseph liked this!*
 - **Repo: git-pulse**: [SEC] Enhance Input Validation in PATCH Request Handler. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/403) - *Status: APPROVED - Joseph liked this!*
 - **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/404) - *Status: APPROVED - Joseph liked this!*
