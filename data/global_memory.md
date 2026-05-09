@@ -1,8 +1,6 @@
 # mayo Global Memory & Experience
 
-- *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/399) - *Status: APPROVED - Joseph liked this!*
-- **Repo: git-pulse**: [SEC] Enhance Year Validation in GitHub Contributions Route. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/400) - *Status: APPROVED - Joseph liked this!*
+- *[ARCHIVED] 2 older lessons were archived to preserve focus.*
 - **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/401) - *Status: APPROVED - Joseph liked this!*
 - **REJECTED by Reviewer**: Executor tried to enhance input validation in ActivityPage but introduced ineffective validation logic — blocked
 - **REJECTED by Reviewer**: Executor tried to enhance token validation in getServerSideToken but lacked comprehensive validation logic — blocked
