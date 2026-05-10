@@ -1,12 +1,6 @@
 # mayo Global Memory & Experience
 
-- *[ARCHIVED] 2 older lessons were archived to preserve focus.*
-- **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/405) - *Status: APPROVED - Joseph liked this!*
-- **Repo: git-pulse**: [SEC] Enhance Input Validation in PostContentRenderer. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/406) - *Status: APPROVED - Joseph liked this!*
-- **Repo: git-pulse**: [SEC] Enhance Input Validation and Error Handling in API Endpoints. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/407) - *Status: APPROVED - Joseph liked this!*
-- **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/408) - *Status: APPROVED - Joseph liked this!*
-- **REJECTED by Reviewer**: Executor tried to fix SQL injection vulnerability in Prisma database queries but used potentially incorrect syntax — blocked
-- **REJECTED by Reviewer**: Executor tried to fix SQL injection vulnerability in Prisma database queries but used potentially incorrect syntax and introduced unnecessary changes — blocked
+- *[ARCHIVED] 4 older lessons were archived to preserve focus.*
 - **Repo: git-pulse**: [SEC] Validate user input in FollowButton component. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/409) - *Status: APPROVED - Joseph liked this!*
 - **Repo: git-pulse**: [SEC] Enhance Error Handling in geminiPitch Function. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/410) - *Status: APPROVED - Joseph liked this!*
 - **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/411) - *Status: APPROVED - Joseph liked this!*
