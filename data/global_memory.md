@@ -1,10 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: git-pulse**: [SEC] Enhance Error Handling in Rate Limiting. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/413) - *Status: APPROVED - Joseph liked this!*
-<!-- LAST_DISCUSSION_REPLY=1778427623 -->
-- **REJECTED by Reviewer**: Executor tried to add BOT_PATTERNS constant and isBot function but did not fix SQL injection vulnerability — blocked
-- **REJECTED by Reviewer**: Executor tried to fix SQL injection vulnerability in Prisma database queries but used potentially incorrect syntax and introduced unnecessary changes — blocked
 - **Repo: git-pulse**: [SEC] Enhance Error Handling in NotificationBell. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/414) - *Status: MERGED - Joseph approved!*
 - **REJECTED by Reviewer**: Executor tried to fix SQL injection vulnerability in Prisma database queries but used potentially incorrect syntax — blocked
 - **REJECTED by Reviewer**: Executor tried to fix SQL injection vulnerability in Prisma database queries but used potentially incorrect syntax — blocked
