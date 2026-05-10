@@ -1,9 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: git-pulse**: [SEC] Enhance Error Handling in NotificationBell. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/414) - *Status: MERGED - Joseph approved!*
-- **REJECTED by Reviewer**: Executor tried to fix SQL injection vulnerability in Prisma database queries but used potentially incorrect syntax — blocked
-- **REJECTED by Reviewer**: Executor tried to fix SQL injection vulnerability in Prisma database queries but used potentially incorrect syntax — blocked
 - **Repo: git-pulse**: [SEC] Enhance Input Validation for Search Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/415) - *Status: MERGED - Joseph approved!*
 <!-- LAST_PROACTIVE_ISSUE=1778417119 -->
 - **Repo: git-pulse**: [SEC] Enhance Input Validation for Post Reactions. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/416) - *Status: MERGED - Joseph approved!*
