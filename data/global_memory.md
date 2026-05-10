@@ -1,10 +1,6 @@
 # mayo Global Memory & Experience
 
-- *[ARCHIVED] 4 older lessons were archived to preserve focus.*
-- **Repo: git-pulse**: [SEC] Validate user input in FollowButton component. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/409) - *Status: APPROVED - Joseph liked this!*
-- **Repo: git-pulse**: [SEC] Enhance Error Handling in geminiPitch Function. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/410) - *Status: APPROVED - Joseph liked this!*
-- **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/411) - *Status: APPROVED - Joseph liked this!*
-- **REJECTED by Reviewer**: Executor tried to add redundant validation logic in route.ts — blocked
+- *[ARCHIVED] 3 older lessons were archived to preserve focus.*
 - **Repo: git-pulse**: [SEC] Enhance Input Validation in GitHub Profile Update API. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/412) - *Status: APPROVED - Joseph liked this!*
 - **Repo: git-pulse**: [SEC] Enhance Error Handling in Rate Limiting. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/413) - *Status: APPROVED - Joseph liked this!*
 <!-- LAST_DISCUSSION_REPLY=1778427623 -->
