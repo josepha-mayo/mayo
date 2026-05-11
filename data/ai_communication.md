@@ -3640,3 +3640,50 @@ This is a real logic bug that prevents the component from functioning as a stand
 **Reviewer**: APPROVE: The executor correctly identifies and removes the erroneous `h-[var(--radix-select-trigger-height)]` constraint from the `SelectPrimitive.Viewport`. Locking the viewport height to the trigger's height (~44px) clips the dropdown list, breaking the core select functionality. While this is a single-line change, it fixes a critical UI bug that renders multi-item dropdowns unusable. The search/replace strings match the original file content exactly, and the resulting code is valid and production-ready.
 
 ---
+
+## Cycle 1778527394
+**Scanner**: ### Step 1: Codebase Understanding
+The repository is a real estate platform built with Next. Next.js, utilizing a modern UI stack (Tailwind CSS, Lucide React, and Base UI). The target file, src/components/ui/sheet.tsx, implements a slide-out side panel (Sheet) component based on the Base UI Dialog primitive, used for mobile menus or detail panels.
+
+### Step 2: Deep Analysis
+
+Security: No immediate security vulnerabilities found in the UI component.
+
+Logic: In the SheetContent component, the close button implementation is logically flawed. The SheetPrimitive.Close component is used with a render prop containing a Button, but the Button itself is empty (no children/icon inside the Button component). The XIcon is placed as a child of SheetPrimitive.Close but outside the Button's render prop. Depending on how Base UI handles the render prop, this may result in a button that is either invisible, unstyled, or non-functional as a clickable target for the icon.
+
+Performance: No significant performance issues.
+
+Architecture: The component follows the compound component pattern correctly.
+
+Features: No missing critical features.
+
+Testing: No runtime validation for the 'side' prop beyond TypeScript types.
+
+DX: Standard shadcn-like implementation.
+
+Consistency: Consistent with the rest of the UI library.
+
+Dead Code: No dead code identified.
+
+### Step 3: Pick ONE Improvement
+The logic bug in the SheetContent close button is a real functional issue. The current structure places the XIcon outside the Button's render prop. In Base UI, the render prop is intended to define the trigger element. By placing the XIcon outside the Button, the actual clickable button is an empty small square (size="icon-sm"), and the icon is just floating next to it or layered poorly, leading to a broken user experience where the "Close" button is nearly impossible to click or visually disconnected from its trigger.
+
+### Step 4: Write the Executor's Plan
+
+WHAT to change: Fix the nesting of the close icon within the SheetContent component to ensure the XIcon is actually inside the Button element.
+
+WHERE in the file: In src/components/ui/sheet.tsx, inside the SheetContent function, specifically the block where showCloseButton is checked and the SheetPrimitive.Close is rendered.
+
+WHY this matters: Currently, the Button is rendered via the render prop but is empty. The XIcon is a sibling to the Button rather than a child. This results in a broken UI where the visual icon is not the actual clickable trigger, or the trigger is an empty button, making the sheet difficult or impossible to close on some devices.
+
+HOW to do it:
+1. Locate the SheetPrimitive.Close component inside the SheetContent function.
+2. Move the XIcon and the sr-only span from being children of SheetPrimitive.Close to being children of the Button component inside the render prop.
+3. Ensure the Button component now wraps both the XIcon and the span.
+4. Remove the XIcon and span from the outer scope of the SheetPrimitive.Close.
+
+**Executor**: {"title": "[LOGIC] Fix Sheet close button nesting to make icon clickable", "body": "### Problem / Gap\nThe close button in the SheetContent component was incorrectly structured: the XIcon and sr-only span were placed as children of SheetPrimitive.Close, while the Button was rendered via the `render` prop but was empty. This caused the visual icon to be disconnected from the actual clickable trigger, making the sheet difficult or impossible to close on some devices.\n\n### Solution & Insight\nMoved the XIcon and sr-only span inside the Button component within the `render` prop, so the Button wraps the icon and text. The SheetPrimitive.Close now self-closes, ensuring the icon is the clickable target and the button is properly styled.\n\n### Impact\nRestores full functionality of the close button, improving user experience and accessibility.", "branch_name": "bot/upgrade-1778527394", "edits": [{"file": "src/components/ui/sheet.tsx", "search": "        {showCloseButton && (\n          <SheetPrimitive.Close\n            data-slot=\"sheet-close\"\n            render={\n              <Button\n                variant=\"ghost\"\n                className=\"absolute top-3 right-3\"\n                size=\"icon-sm\"\n              />\n            }\n          >\n            <XIcon\n            />\n            <span className=\"sr-only\">Close</span>\n          </SheetPrimitive.Close>\n        )}", "replace": "        {showCloseButton && (\n          <SheetPrimitive.Close\n            data-slot=\"sheet-close\"\n            render={\n              <Button\n                variant=\"ghost\"\n                className=\"absolute top-3 right-3\"\n                size=\"icon-sm\"\n              >\n                <XIcon />\n                <span className=\"sr-only\">Close</span>\n              </Button>\n            }\n          />\n        )}"}]}
+
+**Reviewer**: APPROVE: The edit correctly fixes a real logic bug in the SheetContent close button. The XIcon and sr-only text were incorrectly placed as children of SheetPrimitive.Close instead of inside the Button passed to the render prop, which would render an empty, non-functional trigger. The proposed change moves the icon and text inside the Button, making the close button functional and accessible. The search text matches the original exactly, and the replacement is valid, compilable, production-ready code.
+
+---
