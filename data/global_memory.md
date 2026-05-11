@@ -1,7 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: git-pulse**: [SEC] Enhance Input Validation for getGitHubStarredRepos. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/422) - *Status: APPROVED - Joseph liked this!*
 - **Repo: ModelFang**: Opened issue — Priority Directive Conflict - ModelFang Analysis. (Ref: https://github.com/HOLYKEYZ/ModelFang/issues/15) - *Status: RESOLVED (Closed)*
 - **Repo: IntellectSafe**: [SEC] Fix authentication bypass in verify_api_key_header. (Ref: https://github.com/HOLYKEYZ/IntellectSafe/pull/20) - *Status: APPROVED - Joseph liked this!*
 - **REJECTED by Reviewer**: Executor proposed a trivial single-line image path fix on Kelegam-Tech; blocked by safety guard for lack of substance and failed to apply. Retry with bundled cleanup.
