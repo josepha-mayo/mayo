@@ -1,7 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/420) - *Status: APPROVED - Joseph liked this!*
 - **Repo: git-pulse**: [SEC] Fix SQL Injection Vulnerability in Prisma Database Queries. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/421) - *Status: APPROVED - Joseph liked this!*
 - **Repo: git-pulse**: [SEC] Enhance Input Validation for getGitHubStarredRepos. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/422) - *Status: APPROVED - Joseph liked this!*
 - **Repo: ModelFang**: Opened issue — Priority Directive Conflict - ModelFang Analysis. (Ref: https://github.com/HOLYKEYZ/ModelFang/issues/15) - *Status: RESOLVED (Closed)*
