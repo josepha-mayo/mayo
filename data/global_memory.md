@@ -38,4 +38,4 @@
 - **Repo: HOLYKEYZ**: Opened issue — Profile Repository Analysis - No Actionable Code Improvements. (Ref: https://github.com/HOLYKEYZ/HOLYKEYZ/issues/17) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: private-storage**: Opened issue — Security Vulnerability: Plain-text Database Credentials Still Present. (Ref: https://github.com/HOLYKEYZ/private-storage/issues/6) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: private-storage**: Opened issue — Security Vulnerability: Plain-text Database Credentials in DATABASE_URL. (Ref: https://github.com/HOLYKEYZ/private-storage/issues/7) - *Status: AWAITING JOSEPH'S INPUT*
-- **Repo: VULNRIX**: [SEC] Add input size limit to scan endpoint to prevent DoS. (Ref: https://github.com/HOLYKEYZ/VULNRIX/pull/28) - *Status: PENDING REVIEW*
+- **Repo: VULNRIX**: [SEC] Add input size limit to scan endpoint to prevent DoS. (Ref: https://github.com/HOLYKEYZ/VULNRIX/pull/28) - *Status: APPROVED - Joseph liked this!*
