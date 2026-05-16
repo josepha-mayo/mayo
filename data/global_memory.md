@@ -1,7 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: private-storage**: Opened issue — Security Vulnerability: Plain-text Database Credentials Exposed. (Ref: https://github.com/HOLYKEYZ/private-storage/issues/3) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: HOLYKEYZ**: Opened issue — Profile Repository Analysis - No Functional Bugs Found. (Ref: https://github.com/HOLYKEYZ/HOLYKEYZ/issues/12) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: private-storage**: Opened issue — Repository Content Analysis - No Actionable Code Improvements. (Ref: https://github.com/HOLYKEYZ/private-storage/issues/4) - *Status: AWAITING JOSEPH'S INPUT*
 - **REJECTED by Reviewer**: Executor proposed a trivial standalone icon path placeholder fix on unfetter_proxy; blocked by safety guard for lack of substance — must bundle with other cleanup.
