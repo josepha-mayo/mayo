@@ -1,7 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: private-storage**: Opened issue — Priority Directive Conflict - private-storage Analysis. (Ref: https://github.com/HOLYKEYZ/private-storage/issues/2) - *Status: RESOLVED (Closed)*
 - **Repo: git-pulse**: [LOGIC] Fix TimeDisplay hydration logic to prevent stuck state when getRelativeTime returns falsy. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/424) - *Status: APPROVED - Joseph liked this!*
 - **Repo: private-storage**: Opened issue — Security Vulnerability: Plain-text Database Credentials Exposed. (Ref: https://github.com/HOLYKEYZ/private-storage/issues/3) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: HOLYKEYZ**: Opened issue — Profile Repository Analysis - No Functional Bugs Found. (Ref: https://github.com/HOLYKEYZ/HOLYKEYZ/issues/12) - *Status: AWAITING JOSEPH'S INPUT*
