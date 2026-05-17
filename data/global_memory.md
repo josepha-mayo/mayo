@@ -1,8 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: private-storage**: Opened issue — Repository Content Analysis - No Actionable Code Improvements. (Ref: https://github.com/HOLYKEYZ/private-storage/issues/4) - *Status: AWAITING JOSEPH'S INPUT*
-- **REJECTED by Reviewer**: Executor proposed a trivial standalone icon path placeholder fix on unfetter_proxy; blocked by safety guard for lack of substance — must bundle with other cleanup.
 - **Repo: micro-edit**: [LOGIC] Fix memory leak on program exit. (Ref: https://github.com/HOLYKEYZ/micro-edit/pull/11) - *Status: APPROVED - Joseph liked this!*
 - **Repo: git-pulse**: [SEC] Add maximum length validation to hashApiKey to prevent DoS. (Ref: https://github.com/HOLYKEYZ/git-pulse/pull/425) - *Status: APPROVED - Joseph liked this!*
 - **Repo: model-unfetter**: Opened issue — Verify Input Validation for Layer Slicing and Strength Parameters. (Ref: https://github.com/HOLYKEYZ/model-unfetter/issues/10) - *Status: AWAITING JOSEPH'S INPUT*
