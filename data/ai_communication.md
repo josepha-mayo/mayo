@@ -3874,3 +3874,96 @@ HOW to do it:
 **Reviewer**: CORRECT: The fix correctly targets the schema inconsistency in prompt_injection.json. However, the first edit's search block is missing the trailing comma after the pi_injection_chain object's closing brace. Because the original JSON has a comma there (before the next array element), the search fails to match, which is why the diff preview shows only the second edit applied. The replacement must also include the trailing comma to preserve valid JSON. The second edit is correct and matches perfectly.
 
 ---
+
+## Cycle 1779231323
+**Scanner**: ### Step 1: Codebase Understanding
+The HADNX repository is a hybrid offensive/defensive web security platform that combines automated vulnerability scanning, compliance auditing, and an autonomous AI-driven penetration testing agent.
+
+The target files are:
+1. backend/apps/scanner/hadnx_ai/README.md: Documentation for the AI Pentester module, outlining its agentic architecture and pipeline.
+2. frontend/app/login/page.tsx: The client-side login page responsible for user authentication, state management for credentials, and session initialization via localStorage.
+
+The codebase uses a Django REST Framework backend with Celery/Redis for async tasks and a Next.js 14 (App Router) frontend with TypeScript and Tailwind CSS.
+
+### Step 2: Deep Analysis
+
+Security:
+- The login page uses localStorage to store the user object: localStorage.setItem("user", JSON.stringify(data.user)). This is a security risk as sensitive user data or tokens stored in localStorage are vulnerable to Cross-Site Scripting (XSS) attacks.
+- There is no client-side validation for the username or password fields beyond the "required" attribute, though the backend likely handles this.
+
+Logic:
+- The login flow relies on a manual localStorage set followed by a refetchUser call. If refetchUser fails or takes too long, the app state might be inconsistent during the redirect to /dashboard.
+
+Performance:
+- No significant performance bottlenecks identified in the provided login logic.
+
+Architecture:
+- Error handling in the login page is generic. It attempts to parse err.detail or err.non_field_errors, which is consistent with DRF responses, but doesn't handle network timeouts or 500 errors specifically.
+
+Features:
+- Missing "Remember Me" functionality.
+- Missing password visibility toggle (eye icon) for better UX.
+
+Testing:
+- No client-side input sanitization before sending to the API.
+
+DX:
+- The AI module README is concise and provides clear usage examples.
+
+Consistency:
+- The frontend uses a consistent shadcn/ui-like pattern for inputs and buttons.
+
+Dead Code:
+- The imports include Mail and Building from lucide-react, but these icons are never used in the JSX.
+
+### Step 3: Pick ONE Improvement
+
+I have identified a logic/security flaw regarding the session management in frontend/app/login/page.tsx.
+
+The current implementation stores the user object in localStorage and then calls refetchUser(). However, it does not handle the scenario where the login is successful but the subsequent refetchUser() fails. More importantly, storing the user object in localStorage without a secure token management strategy (like HttpOnly cookies) is a common vulnerability, but since I cannot change the backend auth architecture, I will focus on the immediate logic bug: the lack of a "Loading" state or error handling for the critical refetchUser() call which synchronizes the FeatureGate context.
+
+Wait, looking closer at the code: the most impactful "real bug" is the inclusion of unused imports and the potential for a race condition between localStorage setting and the context refresh. However, the most critical issue is the lack of input trimming. Users often accidentally add a trailing space to their username or password when copying/pasting, which leads to "Login failed" errors that are frustrating and look like system bugs.
+
+Actually, looking at the "Senior Engineer" criteria: the most meaningful improvement is fixing the unused imports and the lack of input trimming to prevent authentication failures due to whitespace. But that is too trivial.
+
+Let's re-evaluate: The login page does not handle the case where the user is already authenticated. If a user navigates to /login while already having a session, they are presented with the form instead of being redirected to the dashboard. This is a broken UX flow for an authenticated application.
+
+However, the most "meaningful" fix here is the lack of input trimming on the credentials. In security tools, precision is key, and "Login failed" due to a trailing space is a common source of support tickets. But again, that's trivial.
+
+Let's look at the error handling:
+const errorMessage = err.detail || err.non_field_errors?.[0] || err.message || "Login failed";
+This is actually quite robust for DRF.
+
+Let's look at the unused imports: Mail and Building. Removing them is trivial.
+
+Is there a real bug?
+The login page uses:
+localStorage.setItem("user", JSON.stringify(data.user));
+await refetchUser();
+router.push("/dashboard");
+
+If refetchUser() throws an error, the user is logged into localStorage but the app state (FeatureGate) is not updated, and the user is NOT redirected to the dashboard. They stay on the login page with a potentially confusing error message, even though the backend successfully authenticated them. This is a broken success path.
+
+### Step 4: Write the Executor's Plan
+
+WHAT to change:
+Wrap the refetchUser() call in a try-catch block or ensure that the redirect to the dashboard happens regardless of whether the context refresh succeeds, as the primary authentication (localStorage) has already been established. Additionally, remove unused Lucide icons to clean up the bundle.
+
+WHERE in the file:
+In frontend/app/login/page.tsx, inside the handleSubmit function, specifically the block starting with localStorage.setItem("user", JSON.stringify(data.user)); and the import statement at the top of the file.
+
+WHY this matters:
+Currently, if the refetchUser() call fails (e.g., a transient network glitch after a successful login), the user is trapped on the login page despite having a valid session stored in localStorage. This creates a "broken" user experience where the user is authenticated but cannot access the app.
+
+HOW to do it:
+1. In the import statement, remove Mail and Building from the lucide-react imports.
+2. In the handleSubmit function, locate the line await refetchUser();.
+3. Wrap await refetchUser() in a try-catch block.
+4. In the catch block of refetchUser, log the error to the console but do NOT throw it or set the error state, allowing the execution to proceed to router.push("/dashboard").
+5. This ensures that as long as the login API call succeeds, the user is redirected to the dashboard, and the FeatureGate context will simply attempt to sync on the next page load/refresh.
+
+**Executor**: {"title": "[LOGIC] Fix login redirect when refetchUser fails and remove unused imports", "body": "### Problem / Gap\nAfter a successful login, the code calls `refetchUser()` to update the FeatureGate context. If that call fails (e.g., transient network error), the user is left on the login page despite having a valid session in localStorage. Additionally, the imports `Mail` and `Building` from lucide-react are unused.\n\n### Solution & Insight\nWrap `refetchUser()` in a try-catch block so that a failure does not block the redirect to `/dashboard`. The context will sync on the next page load. Remove the unused icon imports to clean up the bundle.\n\n### Impact\nUsers are no longer trapped on the login page after a successful authentication; the app remains usable even if the context refresh temporarily fails. Unused imports are eliminated, reducing bundle size slightly.", "branch_name": "bot/upgrade-1779231323", "edits": [{"file": "frontend/app/login/page.tsx", "search": "import { Shield, User, Lock, Mail, Building } from \"lucide-react\";", "replace": "import { Shield, User, Lock } from \"lucide-react\";"}, {"file": "frontend/app/login/page.tsx", "search": "      // Store user in localStorage\n      localStorage.setItem(\"user\", JSON.stringify(data.user));\n      \n      // Refresh user in FeatureGate context\n      await refetchUser();\n      \n      router.push(\"/dashboard\");", "replace": "      // Store user in localStorage\n      localStorage.setItem(\"user\", JSON.stringify(data.user));\n      \n      // Refresh user in FeatureGate context\n      try {\n        await refetchUser();\n      } catch (refreshError) {\n        console.error(\"Failed to refresh user context after login:\", refreshError);\n        // Continue to dashboard anyway; context will sync on next load\n      }\n      \n      router.push(\"/dashboard\");"}]}
+
+**Reviewer**: APPROVE: The edits fix a real logic bug where a thrown error from `refetchUser()` (after a successful login) would be caught by the outer `catch` block, trapping the user on the login page despite valid authentication. Wrapping it in a try-catch allows the redirect to `/dashboard` to proceed, which is the correct success-path behavior. The unused import cleanup is bundled appropriately and matches the dead code identified in the analysis.
+
+---
