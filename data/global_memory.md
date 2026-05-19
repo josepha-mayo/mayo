@@ -40,3 +40,4 @@
 - **REJECTED by Reviewer**: Executor proposed trivial single-line type fix on Alexcathe card.tsx; search block mismatched actual file content (original had Card, not CardTitle). Blocked for triviality and mismatch.
 - **Repo: ModelFang**: [LOGIC] Standardize prompt_injection.json attack structure for orchestrator compatibility. (Ref: https://github.com/HOLYKEYZ/ModelFang/pull/19) - *Status: PENDING REVIEW*
 <!-- LAST_DISCUSSION_REPLY=1779231310 -->
+- **Repo: HADNX**: [LOGIC] Fix login redirect when refetchUser fails and remove unused imports. (Ref: https://github.com/HOLYKEYZ/HADNX/pull/19) - *Status: PENDING REVIEW*
