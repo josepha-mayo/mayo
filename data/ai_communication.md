@@ -3631,64 +3631,7 @@ The most critical issue is the **Broken Asset Path** for the logo. The code expl
 
 ---
 
-## Cycle 1778703953
-**Scanner**: ### Step 1: Codebase Understanding
-The repository provides a Windows system information utility written in C, designed to aggregate hardware and OS specs into a single console view. It also includes a tribute folder containing HolyC versions of the tool for TempleOS.
-
-The target file, sysinfo.c, is the primary implementation for Windows. It uses the Win32 API (kernel32, advapi32, user32, gdi32) to query system metrics, registry keys, and process lists.
-
-The codebase follows a procedural C pattern, utilizing helper functions for UI formatting (headers/footers) and modular functions for different system categories (CPU, Memory, Disk, etc.).
-
-### Step 2: Deep Analysis
-
-**Security**:
-- The code uses `sprintf` for constructing drive paths (e.g., `sprintf(drive_path, "%c:\\", drive_letter)`). While the input is controlled by a loop, `snprintf` is the safer standard.
-- Registry access is read-only, which is appropriate.
-
-**Logic**:
-- **Integer Overflow/Precision**: In `print_disk_info`, the calculation `(bytes_per_cluster * total_clusters)` involves multiplying two `DWORD` (32-bit unsigned) values. On modern disks (TB range), this will overflow a 32-bit integer before being cast to a double, leading to wildly incorrect disk size reports.
-- **Buffer Safety**: `GetComputerNameA` and `GetUserNameA` are used. If the system returns a name exactly the size of the buffer, null-termination behavior can vary depending on the Windows version/API call, though the buffers are reasonably sized.
-
-**Performance**:
-- The tool is a short-lived CLI utility; performance is generally acceptable.
-- The process listing (truncated in the provided snippet but mentioned in README) typically involves a snapshot (`CreateToolhelp32Snapshot`), which is the correct approach.
-
-**Architecture**:
-- Error handling is minimal. If `GetSystemInfo` or `GlobalMemoryStatusEx` fails, the program continues with uninitialized or zeroed data without notifying the user.
-
-**Consistency**:
-- The code mixes `double` and `int` for percentage calculations, which is standard for this type of tool.
-
-**Dead Code**:
-- No obvious dead code in the provided segments.
-
-### Step 3: Pick ONE Improvement
-
-The most critical issue is the **Integer Overflow in Disk Capacity Calculation**. 
-
-In `print_disk_info`, the code calculates total bytes as `(bytes_per_cluster * total_clusters)`. Since both operands are `DWORD` (32-bit), the multiplication is performed as a 32-bit operation. A 32-bit unsigned integer maxes out at ~4.29 GB. Any disk larger than 4GB will wrap around (modulo 2^32), resulting in incorrect "Total GB" and "Free GB" values. This is a functional bug that breaks the tool's primary purpose on almost all modern machines.
-
-### Step 4: Executor's Plan
-
-**WHAT**: Fix the integer overflow in the disk space calculation to support drives larger than 4GB.
-
-**WHERE**: In `sysinfo.c`, inside the `print_disk_info` function, specifically the lines where `total_gb` and `free_gb` are calculated using `bytes_per_cluster`, `total_clusters`, and `free_clusters`.
-
-**WHY**: The current multiplication of two 32-bit `DWORD` values overflows before the result is assigned to a `double`. This causes the tool to report incorrect disk sizes for any drive larger than 4GB.
-
-**HOW**:
-1. Locate the calculations for `total_gb` and `free_gb`.
-2. Cast the first operand of the multiplication (`bytes_per_cluster` or the raw `sectors_per_cluster` variable) to a `double` or `unsigned __int64` before the multiplication occurs.
-3. This forces the compiler to use 64-bit floating point or integer math for the product, preventing the 32-bit wrap-around.
-4. Ensure the calculation for `percent` remains protected against division by zero (which is already present).
-
-**Executor**: {"title": "[LOGIC] Fix integer overflow in disk capacity calculation using 64-bit integers", "body": "### Problem / Gap\nThe disk capacity calculation multiplies `sectors_per_cluster` (DWORD) by `bytes_per_sector` (DWORD) and then by `total_clusters`/`free_clusters` (DWORD). Although the current code casts to `double` early, using 64\u2011bit integer arithmetic is more precise and eliminates any risk of 32\u2011bit overflow on drives larger than 4\u202fGB. The percentage calculation also benefits from integer math to avoid floating\u2011point rounding.\n\n### Solution & Insight\nCast `sectors_per_cluster` to `unsigned __int64` before multiplying with `bytes_per_sector` to obtain `bytes_per_cluster` as a 64\u2011bit integer. Compute `total_bytes` and `free_bytes` as `unsigned __int64`, then convert to GB as `double` for display. The percentage is now calculated using integer arithmetic on the byte counts, preserving the existing division\u2011by\u2011zero guard.\n\n### Impact\n- Correctly reports disk sizes for drives of any capacity (no 32\u2011bit wrap\u2011around).\n- More accurate free/used percentage by avoiding floating\u2011point intermediate values.\n- Maintains all existing behavior and output formatting.", "branch_name": "bot/upgrade-1778703953", "edits": [{"file": "sysinfo.c", "search": "                double bytes_per_cluster = (double)sectors_per_cluster * bytes_per_sector;\n                double total_gb = (bytes_per_cluster * total_clusters) / (1024.0 * 1024.0 * 1024.0);\n                double free_gb = (bytes_per_cluster * free_clusters) / (1024.0 * 1024.0 * 1024.0);\n                int percent = (total_gb > 0) ? (int)(((total_gb - free_gb) / total_gb) * 100) : 0;", "replace": "                unsigned __int64 bytes_per_cluster = (unsigned __int64)sectors_per_cluster * bytes_per_sector;\n                unsigned __int64 total_bytes = bytes_per_cluster * total_clusters;\n                unsigned __int64 free_bytes = bytes_per_cluster * free_clusters;\n                double total_gb = (double)total_bytes / (1024.0 * 1024.0 * 1024.0);\n                double free_gb = (double)free_bytes / (1024.0 * 1024.0 * 1024.0);\n                int percent = (total_bytes > 0) ? (int)(((total_bytes - free_bytes) * 100) / total_bytes) : 0;"}]}
-
-**Reviewer**: APPROVE: No reason given
-
----
-
-## Cycle 1778795901
+1778795901
 **Scanner**: ### Step 1: Codebase Understanding
 VULNRIX is an all-in-one security platform providing code vulnerability scanning (via AI and semantic analysis) and digital footprint/OSINT analysis.
 
@@ -3965,5 +3908,61 @@ HOW to do it:
 **Executor**: {"title": "[LOGIC] Fix login redirect when refetchUser fails and remove unused imports", "body": "### Problem / Gap\nAfter a successful login, the code calls `refetchUser()` to update the FeatureGate context. If that call fails (e.g., transient network error), the user is left on the login page despite having a valid session in localStorage. Additionally, the imports `Mail` and `Building` from lucide-react are unused.\n\n### Solution & Insight\nWrap `refetchUser()` in a try-catch block so that a failure does not block the redirect to `/dashboard`. The context will sync on the next page load. Remove the unused icon imports to clean up the bundle.\n\n### Impact\nUsers are no longer trapped on the login page after a successful authentication; the app remains usable even if the context refresh temporarily fails. Unused imports are eliminated, reducing bundle size slightly.", "branch_name": "bot/upgrade-1779231323", "edits": [{"file": "frontend/app/login/page.tsx", "search": "import { Shield, User, Lock, Mail, Building } from \"lucide-react\";", "replace": "import { Shield, User, Lock } from \"lucide-react\";"}, {"file": "frontend/app/login/page.tsx", "search": "      // Store user in localStorage\n      localStorage.setItem(\"user\", JSON.stringify(data.user));\n      \n      // Refresh user in FeatureGate context\n      await refetchUser();\n      \n      router.push(\"/dashboard\");", "replace": "      // Store user in localStorage\n      localStorage.setItem(\"user\", JSON.stringify(data.user));\n      \n      // Refresh user in FeatureGate context\n      try {\n        await refetchUser();\n      } catch (refreshError) {\n        console.error(\"Failed to refresh user context after login:\", refreshError);\n        // Continue to dashboard anyway; context will sync on next load\n      }\n      \n      router.push(\"/dashboard\");"}]}
 
 **Reviewer**: APPROVE: The edits fix a real logic bug where a thrown error from `refetchUser()` (after a successful login) would be caught by the outer `catch` block, trapping the user on the login page despite valid authentication. Wrapping it in a try-catch allows the redirect to `/dashboard` to proceed, which is the correct success-path behavior. The unused import cleanup is bundled appropriately and matches the dead code identified in the analysis.
+
+---
+
+## Cycle 1779307104
+**Scanner**: ### Step 1: Codebase Understanding
+Mayo is an autonomous maintenance engine that uses a triple-AI pipeline (Scanner, Executor, Reviewer) to analyze GitHub repositories and automatically propose surgical code improvements via Pull Requests.
+
+The target files are:
+- data/global_memory.md: A persistent knowledge base tracking the bot's history, successes, and failures across multiple repositories to prevent repeating mistakes.
+- test_json.py: A utility script used to validate the JSON extraction logic from AI responses, specifically testing the regex patterns used to parse the Executor's output.
+
+The codebase uses Python for the backend logic, Markdown for memory/prompts, and a regex-based parsing system to handle the transition between unstructured AI text and structured JSON edits.
+
+### Step 2: Deep Analysis
+
+Security:
+- test_json.py reads from api/ai_communication.md. While this is a local test script, the regex patterns used for JSON extraction are broad. However, since this is a utility for the developer/bot and not a public-facing API endpoint, the risk is low.
+
+Logic:
+- In test_json.py, the function extract_json_from_response uses a list of patterns. The third pattern r'\{[\s\S]*"edits"[\s\S]*\}' is a greedy match. If a response contains two separate JSON objects, this regex will capture everything from the first '{' of the first object to the last '}' of the last object, resulting in a JSONDecodeError.
+- The error handling in test_json.py attempts to find the line number of a JSON failure using re.search(r'line (\d+)', err_str). This assumes the exception string always contains the word "line" followed by a digit. While common in Python's json.JSONDecodeError, it is not guaranteed for all possible parsing exceptions.
+
+Performance:
+- The script reads the entire ai_communication.md file into memory. For a long-running bot, this file could grow significantly, potentially leading to memory pressure during testing.
+
+Architecture:
+- The JSON extraction logic is duplicated or mirrored between the actual production code (implied) and this test script. If the production code uses a different extraction method than what is being tested here, the tests are invalid.
+
+Consistency:
+- The script uses a mix of print statements for debugging and return values for logic.
+
+### Step 3: Pick ONE Improvement
+
+The logic bug in the JSON extraction regex is a meaningful improvement. The current greedy regex r'\{[\s\S]*"edits"[\s\S]*\}' will fail if the AI provides a conversational response that includes multiple JSON-like structures or if the "edits" block is followed by another JSON block (e.g., a summary or metadata block). This would cause the Executor's valid edits to be rejected simply because the parser failed to isolate the specific JSON object.
+
+This is a real bug that affects the reliability of the Triple-AI pipeline's communication.
+
+### Step 4: Write the Executor's Plan
+
+WHAT to change:
+Modify the JSON extraction regex to be non-greedy and more precise when searching for the "edits" object to prevent it from capturing multiple JSON blocks as one.
+
+WHERE in the file:
+In test_json.py, inside the extract_json_from_response function, specifically the third element of the json_patterns list: r'\{[\s\S]*"edits"[\s\S]*\}'.
+
+WHY this matters:
+The current regex is greedy. If the AI response contains a JSON block for "edits" and then another JSON block for "metadata" or "summary", the regex will capture both blocks as a single string. This will cause json.loads() to throw a JSONDecodeError because two adjacent JSON objects are not a valid single JSON document. This leads to the bot failing to process valid edits.
+
+HOW to do it:
+1. Locate the json_patterns list in extract_json_from_response.
+2. Change the third pattern from r'\{[\s\S]*"edits"[\s\S]*\}' to a non-greedy version that stops at the first closing brace that balances the opening brace, or more simply, use a non-greedy match r'\{[\s\S]*?"edits"[\s\S]*?\}'.
+3. Ensure the pattern specifically targets the object containing the "edits" key without over-capturing subsequent blocks.
+
+**Executor**: {"title": "[LOGIC] Fix JSON extraction regex and improve error handling in test_json.py", "body": "### Problem / Gap\nThe JSON extraction regex `r'\\{[\\s\\S]*\"edits\"[\\s\\S]*\\}'` is greedy, causing it to capture multiple JSON blocks as one when the AI response contains additional JSON after the edits object. This leads to `JSONDecodeError` and valid edits being rejected. Additionally, the error handling relies on brittle string parsing of the exception message to find the line number, and the script lacks a `__main__` guard and docstring.\n\n### Solution & Insight\n- Changed the greedy regex to non-greedy `r'\\{[\\s\\S]*?\"edits\"[\\s\\S]*?\\}'` to stop at the first closing brace after the edits object.\n- Replaced the generic `Exception` catch with a specific `json.JSONDecodeError` handler that uses `e.lineno` for accurate line reporting, with a fallback for other exceptions.\n- Added a docstring to `extract_json_from_response` explaining its purpose.\n- Wrapped the script's main execution block in `if __name__ == '__main__':` to allow safe importing.\n\n### Impact\nPrevents false parsing failures when the AI response contains multiple JSON blocks, improves debugging accuracy, and follows Python best practices.", "branch_name": "bot/upgrade-1779307104", "edits": [{"file": "test_json.py", "search": "def extract_json_from_response(text):\n    if not text: return None", "replace": "def extract_json_from_response(text):\n    \"\"\"Extract and parse JSON from AI response text.\n\n    Tries multiple regex patterns to find a JSON object containing \"edits\".\n    Returns the parsed dict or None if no valid JSON found.\n    \"\"\"\n    if not text: return None"}, {"file": "test_json.py", "search": "    json_patterns = [r'```json\\s*([\\s\\S]*?)\\s*```', r'```\\s*([\\s\\S]*?)\\s*```', r'\\{[\\s\\S]*\"edits\"[\\s\\S]*\\}']", "replace": "    json_patterns = [r'```json\\s*([\\s\\S]*?)\\s*```', r'```\\s*([\\s\\S]*?)\\s*```', r'\\{[\\s\\S]*?\"edits\"[\\s\\S]*?\\}']"}, {"file": "test_json.py", "search": "            except Exception as e:\n                print('JSON parse error:', e)\n                # Print the line that failed\n                lines = json_str.split('\\n')\n                # Try to find exactly where it failed from error message (e.g. \"Expecting ',' delimiter: line 42\")\n                try:\n                    err_str = str(e)\n                    line_num = int(re.search(r'line (\\d+)', err_str).group(1))\n                    print(f\"Error around line {line_num}:\")\n                    print(lines[line_num-2])\n                    print(lines[line_num-1], \"   <--- ERROR HERE\")\n                    print(lines[line_num])\n                except:\n                    pass\n                continue", "replace": "            except json.JSONDecodeError as e:\n                print('JSON parse error:', e)\n                lines = json_str.split('\\n')\n                line_num = e.lineno\n                print(f\"Error around line {line_num}:\")\n                if line_num > 1:\n                    print(lines[line_num-2])\n                print(lines[line_num-1], \"   <--- ERROR HERE\")\n                if line_num < len(lines):\n                    print(lines[line_num])\n                continue\n            except Exception as e:\n                print('JSON parse error:', e)\n                continue"}, {"file": "test_json.py", "search": "with open('api/ai_communication.md', 'r', encoding='utf-8') as f:\n    log_content = f.read()\n\n# Find ALL Executor JSON blocks\nblocks = re.findall(r'\\*\\*Executor\\*\\*: ```json\\n(.*?)\\n```', log_content, re.DOTALL)\nif blocks:\n    for index, block in enumerate(blocks):\n        current_block = '```json\\n{' + block.split('{', 1)[-1] if '{' in block else block + '\\n```'\n        print(f\"Testing parser on block {index + 1}/{len(blocks)} (length: {len(current_block)})...\")\n        result = extract_json_from_response(current_block)\n        if result:\n            print(\"Success! Keys:\", result.keys())\n        else:\n            print(\"Failed completely\")\nelse:\n    print(\"No blocks found\")", "replace": "if __name__ == '__main__':\n    with open('api/ai_communication.md', 'r', encoding='utf-8') as f:\n        log_content = f.read()\n\n    # Find ALL Executor JSON blocks\n    blocks = re.findall(r'\\*\\*Executor\\*\\*: ```json\\n(.*?)\\n```', log_content, re.DOTALL)\n    if blocks:\n        for index, block in enumerate(blocks):\n            current_block = '```json\\n{' + block.split('{', 1)[-1] if '{' in block else block + '\\n```'\n            print(f\"Testing parser on block {index + 1}/{len(blocks)} (length: {len(current_block)})...\")\n            result = extract_json_from_response(current_block)\n            if result:\n                print(\"Success! Keys:\", result.keys())\n            else:\n                print(\"Failed completely\")\n    else:\n        print(\"No blocks found\")"}]}
+
+**Reviewer**: APPROVE: Edits fix a real regex greediness bug that causes parser failure on multiple JSON blocks, replace brittle exception string parsing with robust json.JSONDecodeError handling, and correctly wrap script execution in a main guard. Search blocks match exactly and the replacement is valid, production-ready Python.
 
 ---
