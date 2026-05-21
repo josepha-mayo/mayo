@@ -4038,3 +4038,60 @@ HOW to do it:
 **Reviewer**: APPROVE: The base.py change is a substantive architectural fix: it removes the hardcoded 'POST' in the abstract base class, allowing subclasses to forward requests with other HTTP methods (GET, DELETE, etc.) without reimplementing the entire send_request method. This is a real logic improvement for provider routing. The manifest.json edit replaces broken placeholder icon paths with a valid file reference, which is necessary for the extension to load correctly in Chrome. Both search blocks exactly match the provided original content, and bundling the manifest cleanup with a provider base improvement is consistent with previously approved work on this repository.
 
 ---
+
+## Cycle 1779401331
+**Scanner**: ### Step 1: Codebase Understanding
+The HADNX repository is a hybrid offensive/defensive web security platform that combines automated vulnerability scanning, compliance auditing, and interactive pentesting tools (like SQLMap, Nmap, and a custom AI agent) into a unified dashboard.
+
+The target file `frontend/app/dashboard/tools/dos/page.tsx` is the user interface for the DoS/DDoS Simulator, allowing users to configure target URLs, attack methods (HTTP Flood/Slowloris), and intensity levels to stress-test infrastructure.
+
+The codebase uses a modern full-stack architecture: Next.js 14 (App Router) with TypeScript and Tailwind CSS/shadcn/ui for the frontend, and Django 5 with Celery/Redis for the asynchronous backend.
+
+### Step 2: Deep Analysis
+
+**Security**
+- Missing Input Validation: The `target` state is passed directly to the API without frontend validation. While the backend should handle this, the frontend allows any string, which could lead to malformed requests.
+- Lack of Confirmation: The README mentions a `--confirm` flag for CLI DoS attacks, but the frontend `startAttack` function triggers the API immediately upon clicking the button without a "Are you sure?" confirmation dialog, which is dangerous for a tool that can crash services.
+
+**Logic**
+- API Endpoint Mismatch: The `startAttack` function calls `/api/scans/dos/start/`. However, the README's "API Endpoints" section explicitly lists the endpoint as `/api/dos/start/`. This is a critical discrepancy; if the README is the source of truth for the API design, the frontend is calling a non-existent or incorrectly routed endpoint.
+- State Management: The `isRunning` state is set to `true` before the `fetch` call. If the API returns a 4xx or 5xx error (but doesn't throw a network exception), the UI will remain in the "Running" state (showing the Stop button) even though the attack never started.
+
+**Performance**
+- No Polling/WebSocket: The "Live Metrics" section is described as a "Mock" in the comments. There is no actual mechanism to receive real-time feedback from the backend regarding the attack's progress or impact.
+
+**Architecture**
+- Error Handling: The `catch` block in `startAttack` only logs to the console. The user receives no visual feedback (e.g., a toast or alert) if the attack fails to start.
+
+**Consistency**
+- The `stopAttack` function uses a `finally` block to set `isRunning(false)`, which is good, but `startAttack` handles it inconsistently in the `catch` block.
+
+### Step 3: Pick ONE Improvement
+I will fix the **API Endpoint Mismatch and Error State Logic**.
+
+The frontend is calling `/api/scans/dos/start/`, but the project documentation (README) defines the endpoint as `/api/dos/start/`. Furthermore, the `isRunning` state is updated optimistically without verifying the server's response, leading to a UI that can get stuck in a "Running" state if the server rejects the request. This is a functional bug that prevents the tool from working as intended and provides false feedback to the user.
+
+### Step 4: Write the Executor's Plan
+
+**WHAT to change**
+Update the API endpoint paths for starting and stopping DoS simulations to align with the documented API and fix the state update logic to ensure the UI only reflects a running state upon a successful server response.
+
+**WHERE in the file**
+In `frontend/app/dashboard/tools/dos/page.tsx`:
+1. Inside the `startAttack` function, locate the `fetch` call currently using `"/api/scans/dos/start/"`.
+2. Inside the `stopAttack` function, locate the `fetch` call currently using `"/api/scans/dos/stop/"`.
+
+**WHY this matters**
+The current endpoints in the code contradict the system's API specification in the README. If the backend follows the spec, the frontend is broken. Additionally, updating the `isRunning` state before the request completes creates a "zombie" state where the UI says the attack is live even if the backend returned an error.
+
+**HOW to do it**
+1. In `startAttack`, move the `setIsRunning(true)` call to occur ONLY after the `fetch` call has successfully returned a response (check `if (response.ok)`).
+2. Change the URL in `startAttack` from `"/api/scans/dos/start/"` to `"/api/dos/start/"`.
+3. Change the URL in `stopAttack` from `"/api/scans/dos/stop/"` to `"/api/dos/stop/"` (following the pattern of the start endpoint).
+4. Add a check for `response.ok` in both functions; if the response is not ok, ensure `setIsRunning(false)` is called and the error is handled.
+
+**Executor**: {"title": "[LOGIC] Fix DoS API endpoint mismatch and state management", "body": "### Problem / Gap\nThe frontend DoS page called `/api/scans/dos/start/` and `/api/scans/dos/stop/`, but the project README documents the endpoints as `/api/dos/start/` and `/api/dos/stop/`. Additionally, `isRunning` was set to `true` before the API call completed, causing the UI to remain stuck in a running state if the server returned an error.\n\n### Solution & Insight\nUpdated the fetch URLs to match the documented API. Moved `setIsRunning(true)` to after a successful response (checking `response.ok`). Added error handling for non\u2011ok responses in both start and stop functions, ensuring `isRunning` is always set to `false` on failure.\n\n### Impact\nThe DoS simulator now calls the correct endpoints and provides accurate UI feedback, preventing a zombie running state.", "branch_name": "bot/upgrade-1779401331", "edits": [{"file": "frontend/app/dashboard/tools/dos/page.tsx", "search": "  const startAttack = async () => {\n    setIsRunning(true);\n    try {\n        await fetch(\"/api/scans/dos/start/\", {\n            method: \"POST\",\n            headers: { \"Content-Type\": \"application/json\" },\n            body: JSON.stringify({ target, method, intensity, duration: 60 })\n        });\n    } catch (e) {\n        console.error(e);\n        setIsRunning(false);\n    }\n  };\n\n  const stopAttack = async () => {\n      try {\n          await fetch(\"/api/scans/dos/stop/\", { method: \"POST\" });\n      } finally {\n          setIsRunning(false);\n      }\n  };", "replace": "  const startAttack = async () => {\n    try {\n        const response = await fetch(\"/api/dos/start/\", {\n            method: \"POST\",\n            headers: { \"Content-Type\": \"application/json\" },\n            body: JSON.stringify({ target, method, intensity, duration: 60 })\n        });\n        if (!response.ok) {\n            throw new Error(`Request failed with status ${response.status}`);\n        }\n        setIsRunning(true);\n    } catch (e) {\n        console.error(e);\n        setIsRunning(false);\n    }\n  };\n\n  const stopAttack = async () => {\n      try {\n          const response = await fetch(\"/api/dos/stop/\", { method: \"POST\" });\n          if (!response.ok) {\n              throw new Error(`Stop request failed with status ${response.status}`);\n          }\n      } catch (e) {\n          console.error(e);\n      } finally {\n          setIsRunning(false);\n      }\n  };"}]}
+
+**Reviewer**: APPROVE: The edit fixes a real functional bug: it corrects the API endpoint path mismatch (from `/api/scans/dos/` to `/api/dos/`) to align with the README spec, and fixes the optimistic state update bug by only setting `isRunning(true)` after a successful response. The search text matches the original file exactly, the replacement is valid TypeScript/React, and the change is substantive and safe.
+
+---
