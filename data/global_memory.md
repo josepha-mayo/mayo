@@ -1,7 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: temple-sysinfo**: [LOGIC] Fix integer overflow in disk capacity calculation using 64-bit integers. (Ref: https://github.com/HOLYKEYZ/temple-sysinfo/pull/11) - *Status: APPROVED - Joseph liked this!*
 - **Repo: HOLYKEYZ**: Opened issue — Profile Repository Analysis - No Actionable Code Improvements. (Ref: https://github.com/HOLYKEYZ/HOLYKEYZ/issues/17) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: private-storage**: Opened issue — Security Vulnerability: Plain-text Database Credentials Still Present. (Ref: https://github.com/HOLYKEYZ/private-storage/issues/6) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: private-storage**: Opened issue — Security Vulnerability: Plain-text Database Credentials in DATABASE_URL. (Ref: https://github.com/HOLYKEYZ/private-storage/issues/7) - *Status: AWAITING JOSEPH'S INPUT*
