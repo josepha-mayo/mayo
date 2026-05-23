@@ -1262,12 +1262,14 @@ Rules:
                         'Authorization': f'token {token}',
                         'Accept': 'application/vnd.github.v3+json'
                     }
-                    resp = requests.post(api_url, json=review_payload, headers=api_headers)
-                    if resp.status_code in [200, 201]:
-                        print(f"Posted review with {len(review_comments)} inline suggestions")
-                    else:
-                        print(f"Review API failed: {resp.status_code} {resp.text}")
-                        raise Exception(f"API {resp.status_code}")
+                    # DISABLED: Triggers email spam
+                    # resp = requests.post(api_url, json=review_payload, headers=api_headers)
+                    # if resp.status_code in [200, 201]:
+                    #     print(f"Posted review with {len(review_comments)} inline suggestions")
+                    # else:
+                    #     print(f"Review API failed: {resp.status_code} {resp.text}")
+                    #     raise Exception(f"API {resp.status_code}")
+                    print("DEBUG: PR review posting disabled (email spam)")
                 except Exception as review_err:
                     print(f"Review API exception: {review_err}")
                     # DISABLED: Review comments trigger email to PR participants
@@ -1442,7 +1444,8 @@ Instructions:
         memory_block = format_memory_block({"files_read": all_files_for_mem})
         
         model_display = f" ({reviewer_model})" if reviewer_model else ""
-        issue_obj.create_comment(f"{plan}{memory_block}")
+        # DISABLED: Triggers email spam
+        # issue_obj.create_comment(f"{plan}{memory_block}")
         
         # Save Joseph's feedback to memory
         try:
@@ -1630,11 +1633,13 @@ OUTPUT FORMAT (Strict JSON, nothing else):
                         if failed_edits:
                             safe_preview = [f"- {fe}" for i, fe in enumerate(failed_edits) if i < 5]
                             msg += f"\n\n⚠️ Some edits failed to match:\n" + "\n".join(safe_preview)
-                        issue_obj.create_comment(msg)
+                        # DISABLED: Triggers email spam
+                        # issue_obj.create_comment(msg)
                         
                         if not issue_obj.pull_request:
                             try:
-                                repo.create_pull(title=commit_title, body=f"Automated fix.\n{final_payload.get('body', '')}", head=branch, base=repo.default_branch)
+                                # DISABLED: Triggers email spam
+                                # repo.create_pull(title=commit_title, body=f"Automated fix.\n{final_payload.get('body', '')}", head=branch, base=repo.default_branch)
                                 # DISABLED: Triggers email spam
                                 # issue_obj.create_comment(f"🚀 Created new PR for `{branch}`")
                             except Exception as e:
@@ -1824,7 +1829,8 @@ Instructions:
         memory_block = format_memory_block({"files_read": all_files_for_mem})
         
         model_display = f" ({reviewer_model})" if reviewer_model else ""
-        pr.create_issue_comment(f"{plan}{memory_block}")
+        # DISABLED: Triggers email spam
+        # pr.create_issue_comment(f"{plan}{memory_block}")
         
         # Save Joseph's feedback to memory
         try:
@@ -2003,7 +2009,8 @@ OUTPUT FORMAT (Strict JSON, nothing else):
                         if failed_edits:
                             safe_preview = [f"- {fe}" for i, fe in enumerate(failed_edits) if i < 5]
                             msg += f"\n\nSome edits failed to match:\n" + "\n".join(safe_preview)
-                        pr.create_issue_comment(msg)
+                        # DISABLED: Triggers email spam
+                        # pr.create_issue_comment(msg)
                     else:
                         # DISABLED: Triggers email spam
                         # pr.create_issue_comment(f"⚠️ Executor generated edits, but the commit failed. Check logs.\n\n```\n{commit_err}\n```")
