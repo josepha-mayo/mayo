@@ -203,7 +203,7 @@ def run_cron():
                                     mem = mem_file.decoded_content.decode('utf-8')
                                     mem = mem.replace(
                                         f"(Ref: {issue_url}) - *Status: AWAITING JOSEPH'S INPUT*",
-                                        f"(Ref: {issue_url}) - *Status: EXECUTED → {pr.html_url}*"
+                                        f"(Ref: {issue_url}) - *Status: EXECUTED (PR creation disabled)*"
                                     )
                                     bot_repo.update_file("data/global_memory.md", co_author_msg(f"feat(memory): executed approved issue on {repo_name}"), mem, mem_file.sha)
                 except Exception as e:
@@ -421,11 +421,12 @@ If the repo looks fine, output: SKIP"""
                         
                         # DISABLED: Triggers email spam
                         # new_issue = proactive_repo.create_issue(
-                            title=f"{issue_title}",
-                            body=f"{issue_body}\n\n---\n*Proactively opened by Daily Architecture Scan*",
-                            labels=['mayo-generated']
-                        )
-                        print(f"DEBUG: Proactive issue created: {new_issue.html_url}")
+                        #     title=f"{issue_title}",
+                        #     body=f"{issue_body}\n\n---\n*Proactively opened by Daily Architecture Scan*",
+                        #     labels=['mayo-generated']
+                        # )
+                        # print(f"DEBUG: Proactive issue created: {new_issue.html_url}")
+                        print(f"DEBUG: Would create proactive issue (disabled - email spam)")
                     else:
                         print("DEBUG: No proactive issue needed (repo looks clean)")
                 

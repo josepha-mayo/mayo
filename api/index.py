@@ -1638,10 +1638,7 @@ OUTPUT FORMAT (Strict JSON, nothing else):
                         
                         if not issue_obj.pull_request:
                             try:
-                                # DISABLED: Triggers email spam
-                                # repo.create_pull(title=commit_title, body=f"Automated fix.\n{final_payload.get('body', '')}", head=branch, base=repo.default_branch)
-                                # DISABLED: Triggers email spam
-                                # issue_obj.create_comment(f"🚀 Created new PR for `{branch}`")
+                                pass
                             except Exception as e:
                                 print(f"PR Creation error: {e}")
                     else:
