@@ -43,3 +43,4 @@
 - **REJECTED by Reviewer**: Executor repeated previously rejected trivial image placeholder fix on nextphase-realestate, ignoring instruction to bundle with substantive logic improvements.
 - **Repo: IntellectSafe**: [LOGIC] Add type checks for JSON structure in verify_patterns.py to prevent crashes on malformed metadata. (Ref: https://github.com/HOLYKEYZ/IntellectSafe/pull/25) - *Status: MERGED - Joseph approved!*
 - **Repo: Kelegam-Tech**: Scanner wanted to open issue — CompanyOverview Component Audit - No Functional Improvements Found (disabled to prevent email spam)
+- **Repo: SWARMs-Debate-Primitive**: Scanner wanted to open issue — Frontend README is generic boilerplate (disabled to prevent email spam)
