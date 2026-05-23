@@ -1,9 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: HOLYKEYZ**: Opened issue — Profile Repository Analysis - No Functional Improvements Found. (Ref: https://github.com/HOLYKEYZ/HOLYKEYZ/issues/15) - *Status: AWAITING JOSEPH'S INPUT*
-- **REJECTED by Reviewer**: Executor proposed a trivial single-line logo path placeholder fix on Alexcathe; blocked for lack of substance — must bundle with other cleanup.
-- **REJECTED by Reviewer**: Executor proposed trivial single-line logo placeholder path fix on Alexcathe; blocked for lack of substance — must bundle with other cleanup.
 - **Repo: HOLYKEYZ**: Opened issue — Profile Repository Analysis - No Functional Improvements Found. (Ref: https://github.com/HOLYKEYZ/HOLYKEYZ/issues/16) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: temple-sysinfo**: [LOGIC] Fix integer overflow in disk capacity calculation using 64-bit integers. (Ref: https://github.com/HOLYKEYZ/temple-sysinfo/pull/11) - *Status: APPROVED - Joseph liked this!*
 - **Repo: HOLYKEYZ**: Opened issue — Profile Repository Analysis - No Actionable Code Improvements. (Ref: https://github.com/HOLYKEYZ/HOLYKEYZ/issues/17) - *Status: AWAITING JOSEPH'S INPUT*
