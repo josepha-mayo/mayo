@@ -45,3 +45,4 @@
 - **REJECTED by Reviewer**: Executor attempted the same rejected trivial image placeholder fix on nextphase-realestate for the third time; blocked again for ignoring prior instructions to bundle with substantive logic improvements.
 - **Repo: private-storage**: Scanner wanted to open issue — Security Vulnerability: Persistent Exposure of DATABASE_URL File (disabled to prevent email spam)
 - **REJECTED by Reviewer**: Executor proposed empty edits on HADNX after Scanner found no issues; blocked for lack of substance — must bundle with other cleanup or find real bugs.
+- **REJECTED by Reviewer**: Executor proposed unmotivated tsconfig strictness flags on HADNX despite Scanner's NO_ACTIONABLE_IMPROVEMENTS verdict; blocked for trivial DX tweak.
