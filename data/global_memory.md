@@ -49,3 +49,4 @@
 - **Repo: temple-sysinfo**: [LOGIC] Replace deprecated GetDiskFreeSpaceA with GetDiskFreeSpaceExA for large disk support. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Executor submitted empty edits on HOLYKEYZ profile repo after Scanner missed broken badge URLs. Blocked for lack of substance — empty edits are never acceptable.
 - **REJECTED by Reviewer**: Executor attempted empty no-edit submission on HOLYKEYZ profile repo after Scanner found no issues; blocked for lack of substance — must bundle with other cleanup or find real bugs.
+- **REJECTED by Reviewer**: Executor proposed trivial README edits on HOLYKEYZ profile repo; blocked for lack of substance on static markdown with no actionable scanner findings.
