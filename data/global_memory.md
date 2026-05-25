@@ -52,3 +52,4 @@
 - **REJECTED by Reviewer**: Executor proposed trivial README edits on HOLYKEYZ profile repo; blocked for lack of substance on static markdown with no actionable scanner findings.
 - **REJECTED by Reviewer**: Executor submitted empty edits on HOLYKEYZ profile repo after Scanner missed broken badge URLs (e.g., `%[IMAGE_FILE]` placeholders). Blocked for lack of substance — empty edits are never acceptable. Must fix real issues like broken image URLs or bundle with substantive cleanup.
 - **REJECTED by Reviewer**: Executor submitted empty edits on Kelegam-Tech after Scanner hallucinated a syntax error in page.tsx; blocked for lack of substance — empty edits are never acceptable.
+- **REJECTED by Reviewer**: Executor proposed unverified trivial component rename (WhyKelagam -> WhyKelegam) on Kelegam-Tech; blocked for triviality and off-topic deviation from scanner plan.
