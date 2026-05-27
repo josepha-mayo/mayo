@@ -4107,75 +4107,7 @@ The most critical issue is the broken code in `editorUpdateSyntax`. The line `pr
 
 ---
 
-## Cycle 1779658980
-**Scanner**: ### Step 1: Codebase Understanding
-The repository provides a Windows system information utility written in C, designed to aggregate hardware and OS specs into a single view. It also includes a tribute folder containing HolyC versions of the tool for TempleOS.
-
-The target file, sysinfo.c, is the primary implementation of the Windows utility. It uses the Windows API (Win32) to query system metrics, registry keys for CPU details, and memory/disk management functions to display system health and specifications.
-
-The codebase follows a procedural C pattern, utilizing standard Windows headers (windows.h, tlhelp32.h, winreg.h) and basic console output for the UI.
-
-### Step 2: Deep Analysis
-
-**Security**:
-- The code uses `sprintf` to construct drive paths (e.g., `sprintf(drive_path, "%c:\\", drive_letter)`). While the input is a controlled loop from 'C' to 'Z', `sprintf` is generally discouraged in favor of `snprintf` to prevent buffer overflows.
-- Registry access is read-only, which is safe.
-
-**Logic**:
-- **Integer Overflow/Precision**: In `print_disk_info`, the calculation `(total_bytes - free_bytes) * 100 / total_bytes` is performed using `unsigned __int64`. While the logic is mostly sound, the truncation to `int` is acceptable for a percentage.
-- **Buffer Safety**: `GetComputerNameA` and `GetUserNameA` are called with buffers of 256. If the system name exceeds this, the API will fail or truncate.
-
-**Performance**:
-- The disk scanning loop iterates through every letter from 'C' to 'Z'. This is standard for this type of tool and not a performance bottleneck.
-
-**Architecture**:
-- **Missing Error Handling**: Several Windows API calls are made without checking the return value. For example, `GetComputerNameA` and `GetUserNameA` can fail, but the code proceeds to print the buffer regardless.
-- **Resource Management**: The registry key is closed correctly using `RegCloseKey`.
-
-**Features**:
-- The tool lacks a way to handle Unicode characters in computer or user names (it uses the 'A' suffix functions like `GetComputerNameA` instead of 'W' wide-character functions).
-
-**Testing**:
-- There is no validation for cases where `GetDiskFreeSpaceA` fails for specific drive types or permissions, though it is wrapped in an `if` statement.
-
-**DX**:
-- The README is comprehensive and provides clear build instructions for TCC and GCC.
-
-**Consistency**:
-- The formatting is consistent throughout the file.
-
-**Dead Code**:
-- No obvious dead code detected in the provided snippets.
-
-### Step 3: Pick ONE Improvement
-
-The most critical issue is the lack of error handling for the primary identity functions (`GetComputerNameA` and `GetUserNameA`). If these functions fail (due to permission issues or system restrictions), the program will print "Unknown" or potentially uninitialized memory/garbage if the buffer wasn't zeroed, leading to misleading output. However, a more substantive logic bug exists in the Disk Info section: the use of `GetDiskFreeSpaceA` is deprecated and fails for disks larger than 2GB.
-
-Modern Windows systems use `GetDiskFreeSpaceExA` to handle large volumes. Using the older `GetDiskFreeSpaceA` will result in incorrect capacity reporting or failure on almost any modern hard drive. This is a functional bug that renders the "Disk Information" module broken for modern hardware.
-
-### Step 4: Write the Executor's Plan
-
-**WHAT**: Replace the deprecated `GetDiskFreeSpaceA` function with `GetDiskFreeSpaceExA` to support disks larger than 2GB.
-
-**WHERE**: In `sysinfo.c`, inside the `print_disk_info` function. Specifically, locate the block where `GetDiskFreeSpaceA` is called and the subsequent calculations involving `sectors_per_cluster`, `bytes_per_sector`, `free_clusters`, and `total_clusters`.
-
-**WHY**: `GetDiskFreeSpaceA` uses 32-bit integers for cluster counts, meaning it cannot accurately report the size of any disk larger than 2GB. Since almost all modern disks are larger than this, the tool currently provides incorrect or failed data for disk capacity. `GetDiskFreeSpaceExA` uses 64-bit integers (`ULARGE_INTEGER`), which is the industry standard for modern Windows volume querying.
-
-**HOW**:
-1. Remove the local variables `sectors_per_cluster`, `bytes_per_sector`, `free_clusters`, and `total_clusters`.
-2. Declare three `ULARGE_INTEGER` variables: `freeBytesAvailable`, `totalNumberOfBytes`, and `totalNumberOfFreeBytes`.
-3. Replace the `if (GetDiskFreeSpaceA(...))` call with a call to `GetDiskFreeSpaceExA`, passing the `drive_path` and the three `ULARGE_INTEGER` variables.
-4. Remove the manual calculation of `bytes_per_cluster`, `total_bytes`, and `free_bytes`.
-5. Update the `total_gb` and `free_gb` calculations to use the `.QuadPart` member of the `totalNumberOfBytes` and `totalNumberOfFreeBytes` variables respectively.
-6. Update the `percent` calculation to use the `.QuadPart` values of the new `ULARGE_INTEGER` variables.
-
-**Executor**: {"title": "[LOGIC] Replace deprecated GetDiskFreeSpaceA with GetDiskFreeSpaceExA for large disk support", "body": "### Problem / Gap\nThe `print_disk_info` function uses `GetDiskFreeSpaceA`, which is limited to 32\u2011bit cluster counts and fails or reports incorrect sizes for disks larger than 2\u202fGB. On modern systems this renders the disk information module broken.\n\n### Solution & Insight\nReplace `GetDiskFreeSpaceA` with `GetDiskFreeSpaceExA`, which uses 64\u2011bit `ULARGE_INTEGER` values. Remove the manual cluster\u2011based calculations and directly use the returned byte counts. The progress bar is preserved and now uses the correctly computed percentage.\n\n### Impact\nAccurate disk capacity and free space reporting for all modern drives, eliminating a functional bug that affected every disk larger than 2\u202fGB.", "branch_name": "bot/upgrade-1779658980", "edits": [{"file": "sysinfo.c", "search": "void print_disk_info(void) {\n    print_header(\"DISK INFORMATION\");\n    \n    char drive_letter;\n    char drive_path[4];\n    DWORD sectors_per_cluster, bytes_per_sector, free_clusters, total_clusters;\n    \n    for (drive_letter = 'C'; drive_letter <= 'Z'; drive_letter++) {\n        sprintf(drive_path, \"%c:\\\\\", drive_letter);\n        \n        if (GetDriveTypeA(drive_path) == DRIVE_FIXED) {\n            if (GetDiskFreeSpaceA(drive_path, &sectors_per_cluster, &bytes_per_sector, \n                                  &free_clusters, &total_clusters)) {\n                unsigned __int64 bytes_per_cluster = (unsigned __int64)sectors_per_cluster * bytes_per_sector;\n                unsigned __int64 total_bytes = bytes_per_cluster * total_clusters;\n                unsigned __int64 free_bytes = bytes_per_cluster * free_clusters;\n                double total_gb = (double)total_bytes / (1024.0 * 1024.0 * 1024.0);\n                double free_gb = (double)free_bytes / (1024.0 * 1024.0 * 1024.0);\n                int percent = (total_bytes > 0) ? (int)(((total_bytes - free_bytes) * 100) / total_bytes) : 0;\n                \n                printf(\"  |  Drive %c: %6.1fGB total, %6.1fGB free |\\n\", drive_letter, total_gb, free_gb);\n                printf(\"  |  [\");\n                int bar_len = 32;\n                int filled = (percent * bar_len) / 100;\n                int i;\n                for (i = 0; i < bar_len; i++) {\n                    if (i < filled) printf(\"#\");\n                    else printf(\"-\");\n                }\n                printf(\"]|\\n\");\n            }\n        }\n    }\n    print_footer();\n}", "replace": "void print_disk_info(void) {\n    print_header(\"DISK INFORMATION\");\n    \n    char drive_letter;\n    char drive_path[4];\n    ULARGE_INTEGER freeBytesAvailable, totalNumberOfBytes, totalNumberOfFreeBytes;\n    \n    for (drive_letter = 'C'; drive_letter <= 'Z'; drive_letter++) {\n        sprintf(drive_path, \"%c:\\\\\", drive_letter);\n        \n        if (GetDriveTypeA(drive_path) == DRIVE_FIXED) {\n            if (GetDiskFreeSpaceExA(drive_path, &freeBytesAvailable, &totalNumberOfBytes, &totalNumberOfFreeBytes)) {\n                double total_gb = (double)totalNumberOfBytes.QuadPart / (1024.0 * 1024.0 * 1024.0);\n                double free_gb = (double)totalNumberOfFreeBytes.QuadPart / (1024.0 * 1024.0 * 1024.0);\n                int percent = (totalNumberOfBytes.QuadPart > 0) ? (int)(((totalNumberOfBytes.QuadPart - totalNumberOfFreeBytes.QuadPart) * 100) / totalNumberOfBytes.QuadPart) : 0;\n                \n                printf(\"  |  Drive %c: %6.1fGB total, %6.1fGB free |\\n\", drive_letter, total_gb, free_gb);\n                printf(\"  |  [\");\n                int bar_len = 32;\n                int filled = (percent * bar_len) / 100;\n                int i;\n                for (i = 0; i < bar_len; i++) {\n                    if (i < filled) printf(\"#\");\n                    else printf(\"-\");\n                }\n                printf(\"]|\\n\");\n            }\n        }\n    }\n    print_footer();\n}"}]}
-
-**Reviewer**: CORRECT: The core fix is correct and valuable: replacing GetDiskFreeSpaceA with GetDiskFreeSpaceExA fixes the >2GB disk size bug. However, the Executor's search block does not match the original file content. The original printf for drive info was split across two lines, and the disk bar originally included the percentage (%%3d%%). The provided search text omitted both, so it would fail an exact match. Corrected edits preserve the original formatting and percentage display while applying the API upgrade.
-
----
-
-## Cycle 1779662609
+1779662609
 **Scanner**: ### Step 1: Codebase Understanding
 - **Repository Purpose**: This is a profile repository (GitHub Profile README), serving as a professional portfolio and landing page for the user "joseph".
 - **Target File Purpose**: The `README.md` file is the primary content of the profile, showcasing skills, tech stack, and activity statistics via Markdown and dynamic badges.
@@ -4343,5 +4275,59 @@ This is a critical logic bug. `GetDiskFreeSpaceA` is limited to 32-bit values fo
 **Executor**: {"title": "[LOGIC] Replace GetDiskFreeSpaceA with GetDiskFreeSpaceExA for large disk support", "body": "### Problem / Gap\n`GetDiskFreeSpaceA` uses 32-bit cluster counts, causing integer overflow on modern drives larger than 2TB. This results in completely incorrect disk capacity and free space reporting.\n\n### Solution & Insight\nReplace the deprecated call with `GetDiskFreeSpaceExA`, which returns 64-bit byte counts directly via `ULARGE_INTEGER`. The progress bar logic is updated to use `freeBytesAvailable.QuadPart` and `totalNumberOfBytes.QuadPart` for accurate percentage calculation.\n\n### Impact\nAccurate disk information on all modern hardware, eliminating the overflow bug.", "branch_name": "bot/upgrade-1779836327", "edits": [{"file": "sysinfo.c", "search": "void print_disk_info(void) {\n    print_header(\"DISK INFORMATION\");\n    \n    char drive_letter;\n    char drive_path[4];\n    DWORD sectors_per_cluster, bytes_per_sector, free_clusters, total_clusters;\n    \n    for (drive_letter = 'C'; drive_letter <= 'Z'; drive_letter++) {\n        sprintf(drive_path, \"%c:\\\\\", drive_letter);\n        \n        if (GetDriveTypeA(drive_path) == DRIVE_FIXED) {\n            if (GetDiskFreeSpaceA(drive_path, &sectors_per_cluster, &bytes_per_sector, \n                                  &free_clusters, &total_clusters)) {\n                unsigned __int64 bytes_per_cluster = (unsigned __int64)sectors_per_cluster * bytes_per_sector;\n                unsigned __int64 total_bytes = bytes_per_cluster * total_clusters;\n                unsigned __int64 free_bytes = bytes_per_cluster * free_clusters;\n                double total_gb = (double)total_bytes / (1024.0 * 1024.0 * 1024.0);\n                double free_gb = (double)free_bytes / (1024.0 * 1024.0 * 1024.0);\n                int percent = (total_bytes > 0) ? (int)(((total_bytes - free_bytes) * 100) / total_bytes) : 0;\n                \n                printf(\"  |  Drive %c: %6.1fGB total, %6.1fGB free |\\n\", drive_letter, total_gb, free_gb);\n                printf(\"  |  [\");\n                int bar_len = 34;\n                int filled = (percent * bar_len) / 100;\n                int i;\n                for (i = 0; i < bar_len; i++) {\n                    if (i < filled) printf(\"#\");\n                    else printf(\"-\");\n                }\n                printf(\"]|\\n\");\n            }\n        }\n    }\n    print_footer();\n}", "replace": "void print_disk_info(void) {\n    print_header(\"DISK INFORMATION\");\n    \n    char drive_letter;\n    char drive_path[4];\n    ULARGE_INTEGER freeBytesAvailable, totalNumberOfBytes, totalNumberOfFreeBytes;\n    \n    for (drive_letter = 'C'; drive_letter <= 'Z'; drive_letter++) {\n        sprintf(drive_path, \"%c:\\\\\", drive_letter);\n        \n        if (GetDriveTypeA(drive_path) == DRIVE_FIXED) {\n            if (GetDiskFreeSpaceExA(drive_path, &freeBytesAvailable, &totalNumberOfBytes, &totalNumberOfFreeBytes)) {\n                double total_gb = (double)totalNumberOfBytes.QuadPart / (1024.0 * 1024.0 * 1024.0);\n                double free_gb = (double)freeBytesAvailable.QuadPart / (1024.0 * 1024.0 * 1024.0);\n                int percent = (totalNumberOfBytes.QuadPart > 0) ? (int)(((totalNumberOfBytes.QuadPart - freeBytesAvailable.QuadPart) * 100) / totalNumberOfBytes.QuadPart) : 0;\n                \n                printf(\"  |  Drive %c: %6.1fGB total, %6.1fGB free |\\n\", drive_letter, total_gb, free_gb);\n                printf(\"  |  [\");\n                int bar_len = 34;\n                int filled = (percent * bar_len) / 100;\n                int i;\n                for (i = 0; i < bar_len; i++) {\n                    if (i < filled) printf(\"#\");\n                    else printf(\"-\");\n                }\n                printf(\"]|\\n\");\n            }\n        }\n    }\n    print_footer();\n}"}]}
 
 **Reviewer**: REJECTED x2: Fix the search block to exactly match the original file content. The original has: (1) the `printf` arguments split across two lines, (2) `int bar_len = 32;`, and (3) `printf("] %3d%%|\n", percent);`. Your search block must contain these exact original lines. Do not change `bar_len` or remove the percent display; keep all original UI formatting intact and only replace the `GetDiskFreeSpaceA` call, its associated 32-bit variables, and the byte-calculation logic as the Scanner specified.
+
+---
+
+## Cycle 1779923221
+**Scanner**: ### Step 1: Codebase Understanding
+The repository implements a multi-agent AI deliberation system where specialized agents debate or vote on questions, with the final consensus anchored to the Solana blockchain as a verifiable receipt.
+
+The target file `contracts/programs/swarm_escrow/src/lib.rs` is a Solana smart contract (written in Anchor/Rust) that manages the escrow of SOL. It allows a requester to lock funds for a specific question, which are then released or refunded based on the resolution provided by an authorized oracle. `frontend/tsconfig.json` is the TypeScript configuration for the Next.js frontend.
+
+The codebase uses Python (FastAPI) for the backend, Next.js/React for the frontend, and Anchor/Rust for the Solana program.
+
+### Step 2: Deep Analysis
+
+**Security**
+- In `resolve_escrow`, the contract releases funds to the `requester` account. However, the `requester` account in the `ResolveEscrow` struct is marked as `/// CHECK: Recipient of the funds` and is not validated against the `requester` stored in the `EscrowState`. While the `escrow_state` account has a `has_one = requester` constraint, the actual transfer of lamports in the logic uses `ctx.accounts.requester.try_borrow_mut_lamports()`. If a malicious actor provides a different account as the `requester` in the transaction context, the `has_one` constraint on the account state will fail, but the logic itself is slightly decoupled from the state's stored pubkey.
+- **Critical Logic Bug**: In `resolve_escrow`, the code attempts to calculate rent to avoid leaving the account under-funded: `let rent = Rent::get()?.minimum_balance(escrow.to_account_info().data_len());`. It then subtracts this from the `amount`. However, the account `escrow_state` is not closed in `resolve_escrow`. This means the account remains on-chain, consuming space and rent. If the `amount` is less than the rent, `checked_sub` returns 0, and no funds are moved, but the escrow is marked as `is_resolved = true`.
+
+**Logic**
+- In `refund_escrow`, the code uses `**escrow.to_account_info().lamports.borrow()` to get the total balance. This includes the rent-exempt minimum. It then transfers the entire balance to the requester and uses the `close = requester` attribute. This is correct for a full refund.
+- In `initialize_escrow`, the `question_hash` is passed as a `String`. In Solana, strings have variable length. The space allocation `space = 8 + 32 + 32 + 8 + 64 + 64 + 1 + 1 + 1` assumes the `question_hash` and `transcript_hash` are exactly 64 bytes. If a longer string is passed, the program will fail during account initialization or cause memory corruption/truncation.
+
+**Performance**
+- No significant performance bottlenecks identified in the smart contract.
+
+**Architecture**
+- The `resolve_escrow` function does not close the account. This leads to "account bloat" on the blockchain where resolved escrows stay in state forever unless manually refunded (which is blocked by `require!(!escrow.is_resolved)`).
+
+**DX/Consistency**
+- The `tsconfig.json` is standard for a modern Next.js project.
+
+### Step 3: Pick ONE Improvement
+The most critical issue is the **Account Leak/Rent Lock** in `resolve_escrow`. 
+
+Currently, when an escrow is resolved, the funds are transferred, but the account is not closed. Because `is_resolved` is set to `true`, the `refund_escrow` function (which does close the account) can no longer be called. This means the rent-exempt balance of the `EscrowState` account is permanently locked on-chain with no way to recover it. This is a functional bug in the lifecycle of the smart contract.
+
+### Step 4: Write the Executor's Plan
+
+**WHAT** to change:
+Modify the `ResolveEscrow` account validation to ensure the account is closed upon resolution, returning the remaining rent to the requester.
+
+**WHERE** in the file:
+In `contracts/programs/swarm_escrow/src/lib.rs`, locate the `ResolveEscrow` struct (the `#[derive(Accounts)]` block) and the `resolve_escrow` function logic.
+
+**WHY** this matters:
+In Solana, accounts must be rent-exempt. If an account is not closed, the SOL used for its rent is trapped. Since `resolve_escrow` marks the escrow as resolved, and `refund_escrow` prevents resolved escrows from being refunded, the rent for every single resolved debate is permanently lost. Closing the account is the only way to reclaim this SOL.
+
+**HOW** to do it:
+1. In the `ResolveEscrow` struct, add the `close = requester` constraint to the `escrow_state` account attribute.
+2. In the `resolve_escrow` function, remove the manual rent calculation logic: `let rent = Rent::get()?.minimum_balance(...)` and the `checked_sub` logic.
+3. Simplify the fund release logic: instead of subtracting rent and manually adjusting lamports, simply transfer the full `escrow.amount` to the requester. The `close = requester` constraint in the account struct will automatically handle the transfer of the remaining rent balance to the requester at the end of the instruction.
+
+**Executor**: {"title": "[LOGIC] Close escrow account on resolution to reclaim rent", "body": "### Problem / Gap\nWhen an escrow is resolved, the account is not closed, and `is_resolved` is set to `true`, preventing any future refund. This permanently locks the rent-exempt SOL in the account, causing a loss of funds for every resolved debate.\n\n### Solution & Insight\nAdd `close = requester` to the `ResolveEscrow` account struct so the account is closed after resolution, returning the rent to the requester. Simplify the fund release logic by transferring the full `escrow.amount` directly, as the close constraint will automatically handle the remaining rent balance.\n\n### Impact\nPrevents permanent SOL lock-up; every resolved escrow now reclaims its rent, improving the contract's economic efficiency and correctness.", "branch_name": "bot/upgrade-1779923221", "edits": [{"file": "contracts/programs/swarm_escrow/src/lib.rs", "search": "#[derive(Accounts)]\npub struct ResolveEscrow<'info> {\n    #[account(\n        mut,\n        has_one = requester,\n        has_one = oracle @ ErrorCode::UnauthorizedOracle\n    )]\n    pub escrow_state: Account<'info, EscrowState>,\n    \n    pub oracle: Signer<'info>,\n    \n    /// CHECK: Recipient of the funds\n    #[account(mut)]\n    pub requester: AccountInfo<'info>,\n}", "replace": "#[derive(Accounts)]\npub struct ResolveEscrow<'info> {\n    #[account(\n        mut,\n        has_one = requester,\n        has_one = oracle @ ErrorCode::UnauthorizedOracle,\n        close = requester\n    )]\n    pub escrow_state: Account<'info, EscrowState>,\n    \n    pub oracle: Signer<'info>,\n    \n    /// CHECK: Recipient of the funds\n    #[account(mut)]\n    pub requester: AccountInfo<'info>,\n}"}, {"file": "contracts/programs/swarm_escrow/src/lib.rs", "search": "    pub fn resolve_escrow(\n        ctx: Context<ResolveEscrow>,\n        transcript_hash: String,\n        quorum_reached: bool,\n    ) -> Result<()> {\n        let escrow = &mut ctx.accounts.escrow_state;\n\n        require!(!escrow.is_resolved, ErrorCode::AlreadyResolved);\n\n        escrow.is_resolved = true;\n        escrow.quorum_reached = quorum_reached;\n        escrow.transcript_hash = transcript_hash;\n\n        // If quorum reached, release funds (in this demo, we release back to requester)\n        // In a real product, it might go to a different recipient\n        if quorum_reached {\n            let amount = escrow.amount;\n            \n            // subtract rent from the amount to transfer to avoid leaving account under-funded\n            let rent = Rent::get()?.minimum_balance(escrow.to_account_info().data_len());\n            let transfer_amount = amount.checked_sub(rent).unwrap_or(0);\n\n            if transfer_amount > 0 {\n                **escrow.to_account_info().try_borrow_mut_lamports()? -= transfer_amount;\n                **ctx.accounts.requester.try_borrow_mut_lamports()? += transfer_amount;\n            }\n        }\n\n        Ok(())\n    }", "replace": "    pub fn resolve_escrow(\n        ctx: Context<ResolveEscrow>,\n        transcript_hash: String,\n        quorum_reached: bool,\n    ) -> Result<()> {\n        let escrow = &mut ctx.accounts.escrow_state;\n\n        require!(!escrow.is_resolved, ErrorCode::AlreadyResolved);\n\n        escrow.is_resolved = true;\n        escrow.quorum_reached = quorum_reached;\n        escrow.transcript_hash = transcript_hash;\n\n        // If quorum reached, release funds (in this demo, we release back to requester)\n        // In a real product, it might go to a different recipient\n        if quorum_reached {\n            let amount = escrow.amount;\n            **escrow.to_account_info().try_borrow_mut_lamports()? -= amount;\n            **ctx.accounts.requester.try_borrow_mut_lamports()? += amount;\n        }\n\n        Ok(())\n    }"}]}
+
+**Reviewer**: APPROVE: The edits correctly fix the critical account leak/rent-lock bug identified by the Scanner. Adding `close = requester` to `ResolveEscrow` ensures the escrow account is closed and rent is reclaimed upon resolution. Removing the flawed manual rent-calculation logic and transferring the full `escrow.amount` is the correct simplification, as Anchor's `close` constraint handles the remaining rent balance. Search blocks match the original file exactly, and the changes are substantive, safe, and aligned with the Scanner's plan.
 
 ---
