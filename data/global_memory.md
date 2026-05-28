@@ -1,7 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: private-storage**: Opened issue — Security Vulnerability: Persistent Exposure of DATABASE_URL. (Ref: https://github.com/HOLYKEYZ/private-storage/issues/8) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: model-unfetter**: Opened issue — Verify Usage of Model Configuration Properties in Ablation Logic. (Ref: https://github.com/HOLYKEYZ/model-unfetter/issues/12) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: private-storage**: Opened issue — Security Vulnerability: Persistent Exposure of DATABASE_URL. (Ref: https://github.com/HOLYKEYZ/private-storage/issues/9) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: Alexcathe**: Opened issue — UI Component Type Mismatch in CardTitle. (Ref: https://github.com/HOLYKEYZ/Alexcathe/issues/19) - *Status: AWAITING JOSEPH'S INPUT*
