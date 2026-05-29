@@ -4387,3 +4387,67 @@ NO_ACTIONABLE_IMPROVEMENTS
 **Reviewer**: Reviewer unavailable — used Executor's edits directly
 
 ---
+
+## Cycle 1780084998
+**Scanner**: ### Step 1: Codebase Understanding
+DR-OPIC is a framework for training Small Language Models (SLMs) on coding tasks using a Domain-Routed On-Policy Iterative Correction loop. It focuses on generating student attempts, verifying them via execution, repairing failures, and calculating specific metrics (like ZPD weight) to create high-quality training data.
+
+The target file `tests/test_core.py` is the primary integration test suite. It validates the core pipeline: from mathematical utilities (ZPD, advantages) and safety routing to the actual execution of Python code and the generation of training artifacts. `docs/RELEASE_PROTOCOL.md` defines the theoretical and operational pipeline for releasing a model using this framework.
+
+The codebase uses a modular Python architecture with a CLI entry point, utilizing `pytest` for testing and `pydantic` (implied by the use of schemas like `Candidate` and `Task`) for data validation.
+
+### Step 2: Deep Analysis
+
+**Security**:
+The `verify_python` function executes code in a subprocess. While the README warns that this is not a security sandbox, the `static_check_python` function in `tests/test_core.py` (via `test_static_check_blocks_unsafe_api`) shows an attempt to block `os.system`. However, a simple `import subprocess` or `__import__('os').system` would likely bypass a basic static check. This is a known limitation documented in the README, but the gap between the "static check" and "actual safety" is wide.
+
+**Logic**:
+In `test_write_jsonl_and_cli_output`, the test asserts that `main(["--output", str(output), "zpd", "--passes", "1", "--samples", "2"])` returns 0 and the resulting JSON has a `zpd_weight` of 1.0. This is a "happy path" test. There is no testing for edge cases in the CLI, such as providing a non-existent file path for `audit-jsonl` or providing non-integer values for `--passes` and `--samples`.
+
+**Performance**:
+No significant performance bottlenecks identified in the provided test file or protocol.
+
+**Architecture**:
+The `RELEASE_PROTOCOL.md` describes a complex 7-phase process, but the `test_core.py` only tests a tiny fraction of this (Phase 3 and 4). There is a disconnect between the ambitious protocol and the minimal verification suite.
+
+**Testing**:
+The `test_forge_artifacts_are_written` function uses a mock `student` and `repair` function. While it verifies that files are written, it does not verify the *content* of the `verified_repairs.jsonl` or `delta_spans.json` beyond the summary file. It checks if the files exist, but not if the delta spans are mathematically correct or if the repair is actually the one provided by the mock.
+
+**DX**:
+The documentation is comprehensive, and the CLI is well-structured.
+
+**Consistency**:
+Naming and import patterns are consistent across the tested modules.
+
+**Dead Code**:
+No obvious dead code in the provided snippets.
+
+### Step 3: Pick ONE Improvement
+
+I have identified a logic/testing gap in `tests/test_core.py`. The `test_forge_artifacts_are_written` function verifies that the artifact files are created, but it fails to verify the integrity of the most critical output of the DR-OPIC process: the `delta_spans.json`. 
+
+Since the entire purpose of the framework is "Iterative Correction" and "Delta Spans" (as seen in Phase 4 of the protocol and the `dr_opic.delta` module), a test that only checks if the file exists—without checking if the delta actually captures the difference between the failed student code and the fixed repair code—is a significant blind spot. If the `build_round_artifacts` or `save_round_artifacts` logic were to accidentally swap files or save empty lists, this test would still pass.
+
+This is a meaningful improvement because it transforms a "smoke test" (does it crash?) into a "functional test" (is the data correct?), preventing regressions in the core value proposition of the repo.
+
+### Step 4: Write the Executor's Plan
+
+**WHAT**: Enhance `test_forge_artifacts_are_written` in `tests/test_core.py` to validate the actual content of the generated delta spans and repair records, rather than just verifying the existence of the files.
+
+**WHERE**: In `tests/test_core.py`, inside the `test_forge_artifacts_are_written` function. Specifically, after the line `assert set(paths) == {"summary", "rollouts", "repairs", "winner", "delta"}`.
+
+**WHY**: The current test only checks if files are created. It does not verify that the `delta_spans.json` actually contains the correct diff between the `student` return value ("def reverse_words(s):\n    return s\n") and the `repair` return value ("def reverse_words(s):\n    return ' '.join(reversed(s.split()))\n"). If the delta logic breaks, the current test suite will not catch it.
+
+**HOW**:
+1. Locate the `test_forge_artifacts_are_written` function in `tests/test_core.py`.
+2. After the existing assertions, add logic to read the `delta_spans.json` file from the `tmp_path`.
+3. Parse the JSON content of the delta file.
+4. Assert that the delta spans list is not empty.
+5. Assert that the `fixed_text` within the delta spans contains the key logic added by the repair function (e.g., check for the presence of `' '.join(reversed(s.split()))`).
+6. Similarly, read the `verified_repairs.jsonl` file and assert that it contains the repair code provided in the mock `repair` function.
+
+**Executor**: {"title": "[LOGIC] Validate delta spans and repair content in test_forge_artifacts_are_written", "body": "### Problem / Gap\nThe test `test_forge_artifacts_are_written` only checks that artifact files are created, but does not verify the actual content of the most critical outputs: `delta_spans.json` and `verified_repairs.jsonl`. If the delta logic or repair saving breaks silently, the test would still pass.\n\n### Solution & Insight\nAdd assertions that read the generated delta spans and repair records, confirming that the delta contains the expected repair logic (`' '.join(reversed(s.split()))`) and that the repairs file includes the repair code. This transforms a smoke test into a functional correctness check.\n\n### Impact\nPrevents regressions in the core value proposition of DR-OPIC (iterative correction and delta spans) by catching silent failures in artifact generation.", "branch_name": "bot/upgrade-1780084998", "edits": [{"file": "tests/test_core.py", "search": "def test_forge_artifacts_are_written(tmp_path):\n    task = Task(\n        task_id=\"demo\",\n        prompt=\"Implement reverse_words(s).\",\n        entrypoint=\"reverse_words\",\n        tests=\"assert reverse_words('one two') == 'two one'\",\n    )\n\n    def student(_: Task, __: int) -> str:\n        return \"def reverse_words(s):\\n    return s\\n\"\n\n    def repair(_: Task, __: Candidate, ___: int) -> str:\n        return \"def reverse_words(s):\\n    return ' '.join(reversed(s.split()))\\n\"\n\n    group = rollout_python_task(task, student, k=1)\n    repairs = repair_failures(group, repair)\n    artifacts = build_round_artifacts(group, repairs)\n    paths = save_round_artifacts(tmp_path, artifacts)\n    assert set(paths) == {\"summary\", \"rollouts\", \"repairs\", \"winner\", \"delta\"}\n    assert json.loads((tmp_path / \"round_summary.json\").read_text(encoding=\"utf-8\"))[\"task_id\"] == \"demo\"", "replace": "def test_forge_artifacts_are_written(tmp_path):\n    task = Task(\n        task_id=\"demo\",\n        prompt=\"Implement reverse_words(s).\",\n        entrypoint=\"reverse_words\",\n        tests=\"assert reverse_words('one two') == 'two one'\",\n    )\n\n    def student(_: Task, __: int) -> str:\n        return \"def reverse_words(s):\\n    return s\\n\"\n\n    def repair(_: Task, __: Candidate, ___: int) -> str:\n        return \"def reverse_words(s):\\n    return ' '.join(reversed(s.split()))\\n\"\n\n    group = rollout_python_task(task, student, k=1)\n    repairs = repair_failures(group, repair)\n    artifacts = build_round_artifacts(group, repairs)\n    paths = save_round_artifacts(tmp_path, artifacts)\n    assert set(paths) == {\"summary\", \"rollouts\", \"repairs\", \"winner\", \"delta\"}\n    assert json.loads((tmp_path / \"round_summary.json\").read_text(encoding=\"utf-8\"))[\"task_id\"] == \"demo\"\n\n    # Validate delta spans content\n    delta_path = paths[\"delta\"]\n    delta_data = json.loads(delta_path.read_text(encoding=\"utf-8\"))\n    assert len(delta_data) > 0, \"delta_spans.json should not be empty\"\n    assert any(\"' '.join(reversed(s.split()))\" in span[\"fixed_text\"] for span in delta_data), \\\n        \"delta spans should contain the repair logic\"\n\n    # Validate verified repairs content\n    repairs_path = paths[\"repairs\"]\n    repairs_lines = repairs_path.read_text(encoding=\"utf-8\").strip().splitlines()\n    repairs_data = [json.loads(line) for line in repairs_lines]\n    assert any(\"' '.join(reversed(s.split()))\" in r.get(\"code\", \"\") for r in repairs_data), \\\n        \"verified repairs should contain the repair code\""}]}
+
+**Reviewer**: APPROVE: The edit substantively strengthens `test_forge_artifacts_are_written` by validating the actual content of `delta_spans.json` and `verified_repairs.jsonl`, transforming a smoke test into a functional test. It directly addresses the Scanner-identified gap where the framework's core artifact generation could break silently. The search block matches the original file exactly, the added code is valid and production-ready, and there are no destructive changes.
+
+---
