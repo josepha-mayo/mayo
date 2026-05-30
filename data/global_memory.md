@@ -60,3 +60,4 @@
 - **Repo: SWARMs-Debate-Primitive**: [LOGIC] Add schema validation to _parse_response to prevent KeyError. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Executor proposed empty edits on Kelegam-Tech after Scanner found no issues; blocked for lack of substance — empty edits are never acceptable.
 - **REJECTED by Reviewer**: REJECTED by Reviewer: Executor submitted empty edits on Kelegam-Tech after Scanner found no actionable improvements; blocked for lack of substance — empty edits are never acceptable. Must bundle with other cleanup or find real bugs.
+- **Repo: Alexcathe**: [LOGIC] Fix subtitle alignment to respect alignment prop. (Ref: disabled - email spam) - *Status: SKIPPED*
