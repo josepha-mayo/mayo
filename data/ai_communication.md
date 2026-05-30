@@ -4700,3 +4700,60 @@ NO_ACTIONABLE_IMPROVEMENTS
 **Reviewer**: REJECTED x2: Do not submit empty edits when the Scanner finds no issues. Empty PRs are prohibited. You must either identify a real bug, crash, security vulnerability, or perform substantive cleanup (e.g., dead code removal, accessibility fixes, performance optimization) that spans multiple lines. If no issues exist in the target files, move to other files or repos.
 
 ---
+
+## Cycle 1780181130
+**Scanner**: ### Step 1: Codebase Understanding
+IntellectSafe is a production-grade AI safety and security platform that implements a 5-layer defense architecture to protect against prompt injections, hallucinations, PII leaks, and deepfakes. It uses a multi-model "Council" approach and a universal proxy to intercept and sanitize AI traffic.
+
+The target file frontend/src/pages/AgentControl.tsx is the user interface for "Level 5" security, allowing administrators to authorize specific dangerous actions for autonomous agents, monitor their history, and trigger a manual kill switch. The file backend/alembic.ini is the configuration file for database migrations.
+
+The codebase uses a React/TypeScript frontend with Tailwind CSS and a Python/FastAPI backend with SQLAlchemy and Alembic for database management.
+
+### Step 2: Deep Analysis
+
+Security:
+- The AgentControl.tsx page takes a JSON string as input for actionPayload and passes it directly to JSON.parse(). While this is on the frontend, if the backend does not strictly validate the schema of the resulting object, it could lead to injection attacks on the agent's tool-calling logic.
+- The kill switch and authorization endpoints are critical security controls; the frontend lacks a confirmation dialog for the "Kill Agent" action, which could lead to accidental termination of production agents.
+
+Logic:
+- In AgentControl.tsx, the handleAuthorize function uses JSON.parse(actionPayload). If the user enters invalid JSON, the application will throw an unhandled runtime error, crashing the component because the parse call is not wrapped in a try-catch block specifically for the parsing logic (it is inside a general try-catch, but the error message "Authorization failed" is misleading for a syntax error).
+- The handleKill function allows sessionId to be undefined. If the backend requires a session ID to uniquely identify a specific agent instance (rather than all instances of an agent ID), this could lead to ambiguous kill commands.
+
+Performance:
+- No significant performance bottlenecks identified in the provided snippets.
+
+Architecture:
+- The state management for results (authResult, killResult, history) uses 'any' types, bypassing TypeScript's safety and making the UI prone to crashes if the API response structure changes.
+
+Consistency:
+- The frontend uses a mix of standard HTML input elements and custom UI components (Card, Button), which is slightly inconsistent but not functionally broken.
+
+Dead Code:
+- No obvious dead code in the provided snippets.
+
+### Step 3: Pick ONE Improvement
+The most critical issue is the lack of a safety confirmation for the "Kill Agent" action in AgentControl.tsx. In a production safety platform, a "Kill Switch" is a high-impact destructive action. Triggering it via a single click without confirmation is a significant UX and operational risk that can lead to accidental downtime of autonomous systems.
+
+This is a meaningful improvement because it prevents accidental execution of a destructive command, which is the primary purpose of a "Control" dashboard.
+
+### Step 4: Write the Executor's Plan
+
+WHAT to change:
+Implement a confirmation step for the handleKill function to prevent accidental agent termination.
+
+WHERE in the file:
+In frontend/src/pages/AgentControl.tsx, specifically within the handleKill function and the JSX section where the "Kill Agent" button is rendered.
+
+WHY this matters:
+The "Kill Switch" is a destructive action. A single accidental click currently triggers an immediate API call to terminate an agent. Adding a confirmation dialog ensures the action is intentional, reducing operational risk.
+
+HOW to do it:
+1. Modify the handleKill function to first trigger a browser confirmation dialog (window.confirm) with a warning message.
+2. Wrap the existing kill logic inside a conditional block that only executes if the user confirms the dialog.
+3. Ensure the loading and error states are still handled correctly within the confirmed block.
+
+**Executor**: {"title": "[LOGIC] Add confirmation dialog to agent kill switch", "body": "### Problem / Gap\nThe kill switch in AgentControl.tsx triggers an immediate API call to terminate an agent with a single click, without any confirmation. This poses a high operational risk of accidental termination of production agents.\n\n### Solution & Insight\nAdded a `window.confirm` dialog before executing the kill logic. The user must explicitly confirm the destructive action; if they cancel, the function returns early without setting loading or error states, preventing any unintended API calls.\n\n### Impact\nPrevents accidental agent termination, reducing operational risk and aligning with the safety-critical nature of the platform.", "branch_name": "bot/upgrade-1780181130", "edits": [{"file": "frontend/src/pages/AgentControl.tsx", "search": "  const handleKill = async () => {\n    if (!agentId) return;\n    setLoading('kill');\n    setError('');\n    try {\n      const request: AgentKillRequest = {\n        agent_id: agentId,\n        session_id: sessionId || undefined,\n        reason: 'Manual kill switch activated via dashboard',\n      };\n      const result = await killAgent(request);\n      setKillResult(result);\n    } catch (err: any) {\n      setError(err.response?.data?.detail || 'Kill switch failed');\n    } finally {\n      setLoading('');\n    }\n  };", "replace": "  const handleKill = async () => {\n    if (!agentId) return;\n    if (!window.confirm('Are you sure you want to kill this agent? This action cannot be undone.')) return;\n    setLoading('kill');\n    setError('');\n    try {\n      const request: AgentKillRequest = {\n        agent_id: agentId,\n        session_id: sessionId || undefined,\n        reason: 'Manual kill switch activated via dashboard',\n      };\n      const result = await killAgent(request);\n      setKillResult(result);\n    } catch (err: any) {\n      setError(err.response?.data?.detail || 'Kill switch failed');\n    } finally {\n      setLoading('');\n    }\n  };"}]}
+
+**Reviewer**: Reviewer unavailable — used Executor's edits directly
+
+---
