@@ -4527,3 +4527,74 @@ HOW to do it:
 **Reviewer**: REJECTED x2: Retry with a minimal edit that ONLY removes the broken background image div. Do not add useReducedMotion or modify any animation logic. Also verify the exact text of the div to remove: the diff preview suggests the real file uses `bg-[url('/grid.svg')]` with single quotes, not `[IMAGE_REMOVED]` with double quotes. Match your search block exactly to the current file content.
 
 ---
+
+## Cycle 1780139345
+**Scanner**: ### Step 1: Codebase Understanding
+IntellectSafe is a production-grade AI safety and security platform that implements a 5-layer defense architecture to protect against prompt injections, hallucinations, PII leaks, and deepfakes. It uses a multi-model "Council"LLM Council" to validate safety and a universal proxy to intercept traffic to frontier models.
+
+The target files are:
+1. data/rag_fallback/27e56101ed6166a123e8e6342ea845ae.json: A JSON data entry representing a known jailbreak attack (Mongo Tom roleplay) used for RAG-based detection.
+2. backend/tests/test_gemini_pro.py: A standalone integration test script to verify connectivity and basic functionality of the Gemini 1.5 Pro model via the Google API.
+
+The codebase uses FastAPI for the backend, Pydantic for data validation, and a modular architecture separating core safety logic from API routes and services.
+
+### Step 2: Deep Analysis
+
+Security:
+- The test file backend/tests/test_gemini_pro.py accesses the GOOGLE_API_KEY via settings. While it uses a settings object, the script is designed to be run as a standalone file. If the environment is not correctly configured, it defaults to an empty string, which will result in a 403/401 error from Google.
+
+Logic:
+- In backend/tests/test_gemini_pro.py, the response parsing logic is fragile. It uses a chain of .get() calls: resp.json().get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '').
+- If the API returns a 200 OK but the 'candidates' list is empty (which happens during safety filters/blocked content), the code will not crash due to the default empty dictionaries, but it will print an empty string as a "SUCCESS", which is a false positive. A blocked response is a failure of the "Say GEMINI WORKING" test.
+
+Performance:
+- No significant performance issues in these specific files.
+
+Architecture:
+- The test script is a basic "smoke test." It lacks assertions. It prints "SUCCESS" or "FAILED" to stdout, which means it cannot be integrated into a CI/CD pipeline (like pytest) because it doesn't return a non-zero exit code on failure.
+
+Testing:
+- The test does not verify the actual content of the response beyond the existence of text. If Gemini responds with "I cannot do that," the current logic might still treat it as a success if the JSON structure is present.
+
+DX:
+- The script adds the current directory to sys.path manually, which is a common but messy pattern for standalone scripts in a package.
+
+Consistency:
+- The JSON file in rag_fallback follows the established schema for attack patterns.
+
+Dead Code:
+- No dead code identified in these files.
+
+### Step 3: Pick ONE Improvement
+
+The improvement selected is the fix for the false-positive success reporting and the lack of exit codes in backend/tests/test_gemini_pro.py.
+
+Currently, if the Google API returns a 200 OK but the response is blocked by Google's own safety filters (resulting in an empty candidates list or a response that doesn't contain the expected text), the script may still report success or fail to signal the failure to the OS. This makes the test useless for automated health checks.
+
+This is a real bug because a "Success" printout when the model actually refused to answer or returned an empty candidate list is a false positive in a connectivity test.
+
+### Step 4: Write the Executor's Plan
+
+WHAT to change:
+Modify the response validation logic in the run_gemini_pro_check function to ensure the expected text is actually present and implement a system exit code so the test can be used in automation.
+
+WHERE in the file:
+In backend/tests/test_gemini_pro.py, inside the run_gemini_pro_check function, specifically the block starting with if resp.status_code == 200: and the final execution block if __name__ == "__main__":.
+
+WHY this matters:
+1. False Positives: Currently, any 200 OK response with a valid JSON structure (even if empty or blocked) is treated as a success.
+2. CI/CD Integration: The script always exits with code 0, meaning a failing test won't stop a deployment pipeline.
+
+HOW to do it:
+1. Create a variable to track the success status (e.g., success = False).
+2. Inside the if resp.status_code == 200 block, extract the text from the JSON response.
+3. Change the condition to check if the expected string "GEMINI WORKING" is actually contained within the extracted text.
+4. If the text is present, set the success variable to True and print the success message.
+5. If the text is missing or the status code is not 200, print a failure message and keep success as False.
+6. In the if __name__ == "__main__": block, wrap the asyncio.run call. After the function completes, use sys.exit(0) if the check passed and sys.exit(1) if it failed. (Note: This requires the run_gemini_pro_check function to return the success boolean).
+
+**Executor**: {"title": "[LOGIC] Fix false-positive success and add exit codes in Gemini test", "body": "### Problem / Gap\nThe Gemini connectivity test in `backend/tests/test_gemini_pro.py` reports success for any 200 OK response, even when the model's safety filters block the request or the expected text is missing. Additionally, the script always exits with code 0, making it useless for CI/CD pipelines.\n\n### Solution & Insight\nModify `run_gemini_pro_check` to return a boolean indicating success. Extract the response text and verify that it contains the expected string `\"GEMINI WORKING\"`. Print a clear failure message if the text is missing. In the `__main__` block, capture the return value and call `sys.exit(0)` on success or `sys.exit(1)` on failure.\n\n### Impact\nThe test now correctly fails when the model does not return the required confirmation, and it signals failure to the operating system, enabling reliable automated health checks.", "branch_name": "bot/upgrade-1780139345", "edits": [{"file": "backend/tests/test_gemini_pro.py", "search": "async def run_gemini_pro_check():\n    model = \"gemini-1.5-pro\"\n    url = f\"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={getattr(settings, 'GOOGLE_API_KEY', '')}\"\n    payload = {\"contents\": [{\"parts\": [{\"text\": \"Say 'GEMINI WORKING'\"}]}]}\n    \n    async with httpx.AsyncClient(timeout=10.0) as client:\n        try:\n            resp = await client.post(url, json=payload)\n            if resp.status_code == 200:\n                print(f\"SUCCESS: {resp.json().get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')}\")\n            else:\n                print(f\"FAILED ({resp.status_code}): {resp.text}\")\n        except Exception as e:\n            print(f\"ERROR: {e}\")\n\nif __name__ == \"__main__\":\n    asyncio.run(run_gemini_pro_check())", "replace": "async def run_gemini_pro_check():\n    model = \"gemini-1.5-pro\"\n    url = f\"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={getattr(settings, 'GOOGLE_API_KEY', '')}\"\n    payload = {\"contents\": [{\"parts\": [{\"text\": \"Say 'GEMINI WORKING'\"}]}]}\n    success = False\n    \n    async with httpx.AsyncClient(timeout=10.0) as client:\n        try:\n            resp = await client.post(url, json=payload)\n            if resp.status_code == 200:\n                text = resp.json().get('candidates', [{}])[0].get('content', {}).get('parts', [{}])[0].get('text', '')\n                if \"GEMINI WORKING\" in text:\n                    success = True\n                    print(f\"SUCCESS: {text}\")\n                else:\n                    print(f\"FAILED: Expected 'GEMINI WORKING' not found in response. Got: {text}\")\n            else:\n                print(f\"FAILED ({resp.status_code}): {resp.text}\")\n        except Exception as e:\n            print(f\"ERROR: {e}\")\n    return success\n\nif __name__ == \"__main__\":\n    success = asyncio.run(run_gemini_pro_check())\n    sys.exit(0 if success else 1)"}]}
+
+**Reviewer**: APPROVE: The edit fixes a real false-positive bug in the Gemini Pro smoke test by validating that the response content actually contains 'GEMINI WORKING', and it adds a proper process exit code so the test can be used in CI/CD pipelines. The search block matches the original file exactly, and the replacement is valid, non-destructive, production-ready Python.
+
+---
