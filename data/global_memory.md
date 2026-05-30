@@ -62,3 +62,4 @@
 - **Repo: Alexcathe**: [LOGIC] Fix subtitle alignment to respect alignment prop. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Rejected repeated trivial favicon path placeholder fix on Kelegam-Tech; must bundle with substantive logic improvements. Diff preview showed search block not found/blocked.
 - **REJECTED by Reviewer**: Executor submitted empty edits on Kelegam-Tech ignoring Scanner's plan to fix broken favicon paths; blocked for lack of substance.
+- **Repo: temple-sysinfo**: [LOGIC] Replace deprecated GetDiskFreeSpaceA with GetDiskFreeSpaceExA for large disk support. (Ref: disabled - email spam) - *Status: SKIPPED*
