@@ -62,3 +62,4 @@
 - **REJECTED by Reviewer**: Executor proposed empty edits on Kelegam-Tech after Scanner found no actionable improvements; blocked for lack of substance — empty edits are never acceptable.
 - **REJECTED by Reviewer**: Repo: Kelegam-Tech — Executor submitted empty edits again after Scanner found no actionable improvements; blocked for lack of substance. Must find real bugs or substantive cleanup.
 - **Repo: IntellectSafe**: [LOGIC] Add confirmation dialog to agent kill switch. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **Repo: HADNX**: [LOGIC] Fix WAF detector crash on None cookies, add evidence, remove dead import. (Ref: disabled - email spam) - *Status: SKIPPED*
