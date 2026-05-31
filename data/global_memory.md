@@ -1,8 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: HADNX**: [LOGIC] Fix login redirect when refetchUser fails and remove unused imports. (Ref: https://github.com/HOLYKEYZ/HADNX/pull/19) - *Status: MERGED - Joseph approved!*
-- **REJECTED by Reviewer**: Rejected trivial image path placeholder replacement on nextphase-realestate; executor must bundle data fixes with substantive logic improvements.
 - **Repo: HOLYKEYZ**: Opened issue — Profile Repository Analysis - No Functional Improvements Found. (Ref: https://github.com/HOLYKEYZ/HOLYKEYZ/issues/19) - *Status: AWAITING JOSEPH'S INPUT*
 <!-- LAST_PROACTIVE_ISSUE=1780184875 -->
 - **REJECTED by Reviewer**: Executor proposed a single-line non-greedy regex fix in test_json.py; blocked for triviality — must bundle with broader parser improvements or fix production extraction logic.
