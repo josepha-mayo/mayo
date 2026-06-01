@@ -60,3 +60,4 @@
 - **Repo: Kelegam-Tech**: [PERF] Add sizes attribute to Image for responsive loading. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: HADNX**: [PERF] Optimize severity count queries in PDF generator. (Ref: disabled - email spam) - *Status: SKIPPED*
 <!-- LAST_ISSUE_JUDGE=1780343332 -->
+- **REJECTED by Reviewer**: Executor submitted empty edits on git-pulse again despite Scanner providing a crash-fix plan; blocked for lack of substance — empty edits are never acceptable.
