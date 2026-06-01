@@ -1,8 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: unfetter_proxy**: [LOGIC] Fix manifest icons and add configurable HTTP method to Provider.send_request. (Ref: https://github.com/HOLYKEYZ/unfetter_proxy/pull/16) - *Status: MERGED - Joseph approved!*
-<!-- LAST_ISSUE_JUDGE=1780263893 -->
 - **Repo: Kelegam-Tech**: Opened issue — Services Page Architecture Audit. (Ref: https://github.com/HOLYKEYZ/Kelegam-Tech/issues/20) - *Status: AWAITING JOSEPH'S INPUT*
 - **Repo: HADNX**: [LOGIC] Fix DoS API endpoint mismatch and state management. (Ref: https://github.com/HOLYKEYZ/HADNX/pull/20) - *Status: MERGED - Joseph approved!*
 - **Repo: micro-edit**: [LOGIC] Fix compilation errors in syntax highlighting. (Ref: https://github.com/HOLYKEYZ/micro-edit/pull/12) - *Status: MERGED - Joseph approved!*
