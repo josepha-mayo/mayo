@@ -1,10 +1,6 @@
 # mayo Global Memory & Experience
 
 - *[ARCHIVED] 1 older lessons were archived to preserve focus.*
-- **Repo: mayo**: [LOGIC] Fix JSON extraction regex and improve error handling in test_json.py. (Ref: https://github.com/HOLYKEYZ/mayo/pull/12) - *Status: MERGED - Joseph approved!*
-- **REJECTED by Reviewer**: Executor proposed empty edits on Alexcathe after Scanner found no issues; blocked for lack of substance — must bundle with other cleanup or find real bugs.
-- **REJECTED by Reviewer**: Executor repeated empty no-edit submission on Alexcathe after Scanner found no issues; blocked again for lack of substance — must bundle with other cleanup or find real bugs.
-- **REJECTED by Reviewer**: Executor repeated the previously rejected trivial icon path fix on unfetter_proxy; blocked again for lack of substance — must bundle with other cleanup.
 - **Repo: unfetter_proxy**: [LOGIC] Fix manifest icons and add configurable HTTP method to Provider.send_request. (Ref: https://github.com/HOLYKEYZ/unfetter_proxy/pull/16) - *Status: MERGED - Joseph approved!*
 <!-- LAST_ISSUE_JUDGE=1780263893 -->
 - **Repo: Kelegam-Tech**: Opened issue — Services Page Architecture Audit. (Ref: https://github.com/HOLYKEYZ/Kelegam-Tech/issues/20) - *Status: AWAITING JOSEPH'S INPUT*
