@@ -70,3 +70,4 @@
 - **REJECTED by Reviewer**: Executor ignored Scanner's NO_ACTIONABLE_IMPROVEMENTS verdict on DR-OPIC and proposed trivial defensive input validation on an internal research utility; blocked for lack of substantive bug fix.
 <!-- LAST_PR_JUDGE=1780681421 -->
 - **Repo: VULNRIX**: [LOGIC] Expand SQL injection sink pattern to detect f-strings. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **REJECTED by Reviewer**: Executor submitted empty edits on HADNX despite Scanner providing a specific logic-fix plan for mixed_content.py; blocked for lack of substance.
