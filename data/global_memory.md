@@ -72,3 +72,4 @@
 - **REJECTED by Reviewer**: Executor submitted empty edits on HADNX despite Scanner providing a specific logic-fix plan for mixed_content.py; blocked for lack of substance.
 - **Repo: unfetter_proxy**: [LOGIC] Prevent false-positive success in web session test. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Executor repeated empty no-edit submission on DR-OPIC after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
+- **REJECTED by Reviewer**: Executor submitted empty edits on DR-OPIC after NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
