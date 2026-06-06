@@ -73,3 +73,4 @@
 - **Repo: unfetter_proxy**: [LOGIC] Prevent false-positive success in web session test. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Executor repeated empty no-edit submission on DR-OPIC after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
 - **REJECTED by Reviewer**: Executor submitted empty edits on DR-OPIC after NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
+- **REJECTED by Reviewer**: Executor repeated empty no-edit submission on DR-OPIC after Scanner's NO_ACTIONABLE verdict; blocked again for lack of substance.
