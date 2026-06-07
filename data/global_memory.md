@@ -74,3 +74,4 @@
 - **REJECTED by Reviewer**: Executor repeated empty no-edit submission on DR-OPIC after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
 - **REJECTED by Reviewer**: Executor submitted empty edits on DR-OPIC after NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
 - **REJECTED by Reviewer**: Executor repeated empty no-edit submission on DR-OPIC after Scanner's NO_ACTIONABLE verdict; blocked again for lack of substance.
+- **REJECTED by Reviewer**: Repo git-pulse: Executor repeated empty-edit submission after Scanner found no actionable improvements; blocked again — must find real bugs or substantive cleanup.
