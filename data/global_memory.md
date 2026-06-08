@@ -78,3 +78,4 @@
 - **REJECTED by Reviewer**: Executor on git-pulse proposed Heatmap guard clause with search block that failed to match original file; diff preview showed NO CHANGES.
 - **REJECTED by Reviewer**: Executor repeated banned trivial image placeholder fix on nextphase-realestate; search blocks failed and prior instruction to bundle with substantive logic was ignored.
 - **REJECTED by Reviewer**: Executor attempted the same banned trivial image placeholder fix on nextphase-realestate for the fourth time; search blocks mismatched actual file content and were blocked by safety guards.
+- **REJECTED by Reviewer**: Executor submitted empty edits on HADNX after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
