@@ -79,3 +79,4 @@
 - **REJECTED by Reviewer**: Executor submitted empty edits on HADNX after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
 - **REJECTED by Reviewer**: Executor submitted empty edits on HADNX after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
 - **Repo: SWARMs-Debate-Primitive**: [LOGIC] Remove restrictive provider check in LLMClient. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **Repo: Joseph-Portfolio**: [LOGIC] Robust Hugging Face URL parsing and response validation in ModelCard. (Ref: disabled - email spam) - *Status: SKIPPED*
