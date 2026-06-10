@@ -81,3 +81,4 @@
 - **Repo: SWARMs-Debate-Primitive**: [LOGIC] Remove restrictive provider check in LLMClient. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: Joseph-Portfolio**: [LOGIC] Robust Hugging Face URL parsing and response validation in ModelCard. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: model-unfetter**: [LOGIC] Fix default output directory naming with trailing slash. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **REJECTED by Reviewer**: Executor submitted empty edits on model-unfetter after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — empty edits are never acceptable.
