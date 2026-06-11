@@ -5469,3 +5469,71 @@ HOW to do it:
 **Reviewer**: APPROVE: Fixes a real memory leak where the polling timeout continues to fire after the component unmounts. The search block matches the original file exactly, the replacement is valid TypeScript/React, and the change aligns with the scanner's plan.
 
 ---
+
+## Cycle 1781217863
+**Scanner**: ### Step 1: Codebase Understanding
+The unfetter_proxy repository is a reverse proxy designed to "unfetter" (uncensor) closed-source LLMs by intercepting API calls to apply token suppression, system prompt injection, and automated jailbreak loops.
+
+The target files are:
+1. unfetter_ext/manifest.json: The configuration file for the Chrome extension used to sync web sessions (cookies) from AI providers to the local proxy.
+2. unfetter_proxy/proxy/config.py: The configuration management system that handles loading, saving, and defining the default settings for the proxy server and its providers.
+
+The codebase uses Python (FastAPI/Dataclasses) for the backend and a Manifest V3 Chrome Extension for the frontend bridge.
+
+### Step 2: Deep Analysis
+
+**Security**
+- The manifest.json uses broad host_permissions (e.g., https://chatgpt.com/*). While necessary for a session sync tool, it is a high-privilege permission.
+- config.py stores configuration in a hidden home directory (~/.unfetter), which is standard, but there is no validation on the types of data being loaded from the JSON file into the dataclass.
+
+**Logic**
+- In config.py, the load_config function uses a loop to setattr values from the JSON file onto a ProxyConfig instance. However, it does not validate that the value being set matches the type expected by the dataclass field. For example, if a user manually edits proxy_config.json and changes port to a string "8080", the application will likely crash later when the server attempts to bind to that port.
+- The ProviderConfig dataclass is defined but never actually used in the ProxyConfig class. ProxyConfig uses a raw dict[str, dict[str, Any]] for providers instead of a dict[str, ProviderConfig]. This creates a type-safety gap where the structured ProviderConfig is ignored in favor of unstructured dictionaries.
+
+**Performance**
+- No significant performance bottlenecks identified in these specific configuration files.
+
+**Architecture**
+- There is a disconnect between the defined ProviderConfig dataclass and the actual implementation in ProxyConfig. This leads to inconsistent configuration handling.
+
+**Features**
+- The manifest.json contains [IMAGE_FILE] placeholders for icons. While these are likely placeholders for the developer to fill, they make the extension un-loadable in a production-ready state. However, per global memory, trivial asset fixes are rejected.
+
+**Consistency**
+- The use of a dictionary for providers in ProxyConfig contradicts the existence of the ProviderConfig dataclass.
+
+**Dead Code**
+- The ProviderConfig dataclass is currently dead code as it is never instantiated or used within the configuration logic.
+
+### Step 3: Pick ONE Improvement
+
+The most critical issue is the lack of type validation and the "half-implemented" configuration structure in config.py. Specifically, the load_config function blindly applies values from a JSON file to a dataclass using setattr. If the JSON file is corrupted or manually edited with incorrect types (e.g., a string where an int is expected), the proxy will crash at runtime during server startup or during a request transformation.
+
+This is a logic/stability bug. Fixing this ensures the proxy is resilient to configuration errors and properly utilizes the defined type system.
+
+### Step 4: Write the Executor's Plan
+
+**WHAT**
+Implement type-safe configuration loading in the load_config function and integrate the ProviderConfig dataclass into the ProxyConfig class to replace the unstructured dictionary.
+
+**WHERE**
+In unfetter_proxy/proxy/config.py:
+1. The ProxyConfig dataclass definition, specifically the providers field.
+2. The load_config function, specifically the loop that iterates over data.items() and calls setattr.
+
+**WHY**
+Currently, load_config performs no type checking. If the config file contains a string for a field that expects an integer (like port or max_retries), the program will crash. Additionally, the ProviderConfig dataclass is defined but unused, meaning the provider settings are handled as raw dictionaries, losing all benefits of type hinting and default values defined in ProviderConfig.
+
+**HOW**
+1. Modify the ProxyConfig dataclass: Change the providers field type from dict[str, dict[str, Any]] to dict[str, ProviderConfig].
+2. Update the default_factory for providers in ProxyConfig to instantiate ProviderConfig objects for each provider (openai, anthropic, etc.) instead of raw dictionaries.
+3. Update the load_config function:
+    - Inside the loop where setattr is called, add a check to verify the type of the value from the JSON file against the type hint of the attribute on the config object.
+    - If the types do not match, skip that specific attribute or cast it to the correct type to prevent runtime crashes.
+    - Specifically handle the providers dictionary: when loading provider settings, ensure the nested values are mapped into ProviderConfig instances rather than remaining as dictionaries.
+
+**Executor**: {"title": "[LOGIC] Type-safe config loading and integrate ProviderConfig", "body": "### Problem / Gap\n`load_config` blindly applies JSON values to `ProxyConfig` fields via `setattr` without type checking. If a user manually edits `proxy_config.json` and sets `port` to a string `\"8080\"`, the proxy crashes at startup. Additionally, the `ProviderConfig` dataclass is defined but never used; `ProxyConfig.providers` is a raw `dict[str, dict[str, Any]]`, losing type safety and default values.\n\n### Solution & Insight\n- Change `ProxyConfig.providers` type to `dict[str, ProviderConfig]` and update the default factory to instantiate `ProviderConfig` objects (dropping the non-existent `mode` field).\n- Rewrite `load_config` to validate types: for each key, compare the JSON value type against the dataclass field type. Attempt safe casts for `int`, `float`, `bool`, and `str`. For the `providers` key, map nested dicts into `ProviderConfig` instances. Invalid or mismatched keys are skipped to prevent crashes.\n\n### Impact\nPrevents runtime crashes from mis-typed configuration values. Makes provider configuration type-safe and consistent with the existing `ProviderConfig` dataclass.", "branch_name": "bot/upgrade-1781217863", "edits": [{"file": "unfetter_proxy/proxy/config.py", "search": "    providers: dict[str, dict[str, Any]] = field(default_factory=lambda: {\n        \"openai\": {\"enabled\": True, \"api_base\": \"https://api.openai.com/v1\", \"mode\": \"api\"},\n        \"anthropic\": {\"enabled\": True, \"api_base\": \"https://api.anthropic.com/v1\", \"mode\": \"api\"},\n        \"gemini\": {\"enabled\": True, \"api_base\": \"https://generativelanguage.googleapis.com\", \"mode\": \"api\"},\n        \"groq\": {\"enabled\": True, \"api_base\": \"https://api.groq.com/openai/v1\", \"mode\": \"api\"},\n        \"cerebras\": {\"enabled\": True, \"api_base\": \"https://api.cerebras.ai\", \"mode\": \"api\"},\n        \"abliteration\": {\"enabled\": True, \"api_base\": \"https://api.abliteration.ai\", \"mode\": \"api\"},\n    })", "replace": "    providers: dict[str, ProviderConfig] = field(default_factory=lambda: {\n        \"openai\": ProviderConfig(enabled=True, api_base=\"https://api.openai.com/v1\"),\n        \"anthropic\": ProviderConfig(enabled=True, api_base=\"https://api.anthropic.com/v1\"),\n        \"gemini\": ProviderConfig(enabled=True, api_base=\"https://generativelanguage.googleapis.com\"),\n        \"groq\": ProviderConfig(enabled=True, api_base=\"https://api.groq.com/openai/v1\"),\n        \"cerebras\": ProviderConfig(enabled=True, api_base=\"https://api.cerebras.ai\"),\n        \"abliteration\": ProviderConfig(enabled=True, api_base=\"https://api.abliteration.ai\"),\n    })"}, {"file": "unfetter_proxy/proxy/config.py", "search": "def load_config() -> ProxyConfig:\n    \"\"\"Load config from disk, or return defaults.\"\"\"\n    if CONFIG_FILE.exists():\n        try:\n            data = json.loads(CONFIG_FILE.read_text(encoding=\"utf-8\"))\n            config = ProxyConfig()\n            for key, value in data.items():\n                if hasattr(config, key):\n                    setattr(config, key, value)\n            return config\n        except (json.JSONDecodeError, KeyError):\n            return ProxyConfig()\n    return ProxyConfig()", "replace": "def load_config() -> ProxyConfig:\n    \"\"\"Load config from disk, or return defaults.\"\"\"\n    if CONFIG_FILE.exists():\n        try:\n            data = json.loads(CONFIG_FILE.read_text(encoding=\"utf-8\"))\n            config = ProxyConfig()\n            for key, value in data.items():\n                if not hasattr(config, key):\n                    continue\n                if key == \"providers\":\n                    # Map provider dicts to ProviderConfig instances\n                    if isinstance(value, dict):\n                        for provider_name, provider_data in value.items():\n                            if isinstance(provider_data, dict):\n                                try:\n                                    config.providers[provider_name] = ProviderConfig(**provider_data)\n                                except TypeError:\n                                    pass  # skip invalid provider config\n                    continue\n                # Type validation and safe casting\n                field_type = type(getattr(config, key))\n                if isinstance(value, field_type):\n                    setattr(config, key, value)\n                else:\n                    # Attempt safe cast for common types\n                    try:\n                        if field_type is int:\n                            setattr(config, key, int(value))\n                        elif field_type is float:\n                            setattr(config, key, float(value))\n                        elif field_type is bool:\n                            if isinstance(value, str):\n                                setattr(config, key, value.lower() in (\"true\", \"1\", \"yes\"))\n                            else:\n                                setattr(config, key, bool(value))\n                        elif field_type is str:\n                            setattr(config, key, str(value))\n                        # else skip unsupported cast\n                    except (ValueError, TypeError):\n                        pass  # skip if cast fails\n            return config\n        except (json.JSONDecodeError, KeyError):\n            return ProxyConfig()\n    return ProxyConfig()"}]}
+
+**Reviewer**: APPROVE: Edits correctly integrate the previously unused ProviderConfig dataclass into ProxyConfig, replacing the unsafe dict[str, dict] type. The load_config enhancement adds robust type validation and safe casting, preventing runtime crashes from malformed JSON (e.g., string values for int fields). Search blocks match original content exactly, and the change is substantive, aligned with the scanner's plan, and backward-compatible with existing saved configs via asdict serialization.
+
+---
