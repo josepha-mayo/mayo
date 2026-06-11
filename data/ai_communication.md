@@ -5183,64 +5183,7 @@ NO_ACTIONABLE_IMPROVEMENTS
 
 ---
 
-## Cycle 1781027337
-**Scanner**: ### Step 1: Codebase Understanding
-The repository implements a multi-agent AI deliberation system that uses a swarm of specialized agents to debate or vote on questions, then anchors the results to the Solana Devnet.
-
-The target files are:
-- render.yaml: Configuration for deploying the backend to Render.
-- core/llm_client.py: The low-level interface for communicating with LLM providers (specifically NVIDIA NIM in the current implementation).
-
-The codebase uses FastAPI for the server, Next.js for the frontend, and a custom multi-provider LLM client architecture to handle failover and specialized agent routing.
-
-### Step 2: Deep Analysis
-
-Security:
-- The LLMClient relies on config.API_KEYS. While not hardcoded in the file, the system lacks a fallback or validation mechanism if the environment variables are partially malformed.
-
-Logic:
-- CRITICAL BUG: The LLMClient constructor contains a hard check: if config.LLM_PROVIDER != "nvidia", it raises a ValueError. However, the README and the rest of the repo (multi_provider_client.py, etc.) explicitly state support for Gemini, Groq, and Cerebras. This LLMClient implementation is strictly locked to NVIDIA, which effectively breaks the "Multi-provider LLM pool" feature described in the README if this client is used as the primary interface.
-- The generate_sync method uses asyncio.run(). If this is called from within an already running event loop (which is common in FastAPI/uvicorn environments), it will raise a RuntimeError: asyncio.run() cannot be called from a running event loop.
-
-Performance:
-- The use of asyncio.to_thread for _post_json is correct for wrapping the synchronous urllib.request, but the timeout is hardcoded to 60 seconds, which may be too long for a real-time "theater" experience.
-
-Architecture:
-- The LLMClient is tightly coupled to the NVIDIA API schema. It assumes the response will always follow the OpenAI-style choices[0].message.content format.
-
-Consistency:
-- The model_for_index method has a hardcoded fallback to "moonshotai/kimi-k2-thinking", which differs from the NVIDIA_MODEL mentioned in the README ("moonshotai/kimi-k2.6").
-
-### Step 3: Pick ONE Improvement
-The most critical issue is the logic bug in the LLMClient constructor that prevents the system from functioning with any provider other than NVIDIA, contradicting the core project requirement of a multi-provider pool.
-
-Improvement: Remove the restrictive provider check in LLMClient to allow the client to be instantiated regardless of the global provider setting, as the specific provider logic is handled by the API endpoint URL and the keys passed during the generate call.
-
-### Step 4: Write the Executor's Plan
-
-WHAT to change:
-Remove the validation block in the LLMClient.__init__ method that raises a ValueError when the provider is not set to nvidia.
-
-WHERE in the file:
-In core/llm_client.py, inside the __init__ method. Specifically, the lines:
-if config.LLM_PROVIDER != "nvidia":
-    raise ValueError(f"Unsupported LLM provider: {config.LLM_PROVIDER}")
-
-WHY this matters:
-The project is designed as a "Multi-provider LLM pool" (supporting Gemini, Groq, Cerebras). By raising a ValueError whenever the global provider is not "nvidia", the code prevents the system from starting or functioning in any other configuration, rendering the multi-provider architecture useless and causing the application to crash on startup for any user not using NVIDIA.
-
-HOW to do it:
-1. Locate the __init__ method of the LLMClient class in core/llm_client.py.
-2. Delete the if-statement and the corresponding raise ValueError line that checks if config.LLM_PROVIDER is not equal to "nvidia".
-3. Ensure the remaining initialization logic (setting self.api_keys and self.models) remains intact.
-
-**Executor**: {"title": "[LOGIC] Remove restrictive provider check in LLMClient", "body": "### Problem / Gap\nThe LLMClient constructor raises a ValueError if the global provider is not \"nvidia\", contradicting the project's multi-provider architecture (Gemini, Groq, Cerebras). This prevents the system from starting with any other provider and breaks the core feature.\n\n### Solution & Insight\nRemove the provider validation block from `__init__`. The actual provider logic is handled by the API endpoint URL and keys passed during generation, so this check is unnecessary and harmful.\n\n### Impact\nRestores the ability to use any supported LLM provider, aligning the code with the documented multi-provider pool design and preventing startup crashes.", "branch_name": "bot/upgrade-1781027337", "edits": [{"file": "core/llm_client.py", "search": "    def __init__(self, api_keys: list[str] | None = None, models: list[str] | None = None):\n        if config.LLM_PROVIDER != \"nvidia\":\n            raise ValueError(f\"Unsupported LLM provider: {config.LLM_PROVIDER}\")\n\n        self.api_keys = [key for key in (api_keys or config.API_KEYS) if key]\n        self.models = models or config.API_MODELS\n        if not self.api_keys:\n            raise ValueError(\"No API keys configured.\")", "replace": "    def __init__(self, api_keys: list[str] | None = None, models: list[str] | None = None):\n        self.api_keys = [key for key in (api_keys or config.API_KEYS) if key]\n        self.models = models or config.API_MODELS\n        if not self.api_keys:\n            raise ValueError(\"No API keys configured.\")"}]}
-
-**Reviewer**: APPROVE: The edit exactly matches the scanner's plan to remove the restrictive NVIDIA-only guard clause in LLMClient.__init__. This is a real logic bug that prevents the multi-provider pool from functioning. The search block matches the original file exactly, and the replacement is valid, production-ready code.
-
----
-
-## Cycle 1781040394
+1781040394
 **Scanner**: ### Step 1: Codebase Understanding
 - **Repository Purpose**: A professional portfolio website for Joseph, showcasing skills, projects, and Hugging Face models/datasets using Next.js.
 - **Target File Purpose**: `src/app/page.tsx` is the main landing page containing the UI logic for skill cards, project showcases, and a dynamic integration with the Hugging Face API to display download counts for AI models. `netlify.toml` handles the deployment configuration for Netlify.
@@ -5463,5 +5406,66 @@ Actually, the most meaningful fix is adding a 'close' event listener to the WebS
 **Executor**: {"title": "[LOGIC] Add WebSocket close handler to relay-smoke.js for immediate failure on connection drop", "body": "### Problem / Gap\nThe smoke test script `scripts/relay-smoke.js` does not listen for the WebSocket `close` event. If the relay server crashes or closes the connection unexpectedly, the test hangs until the global timeout (default 45s) expires, providing a misleading \"timeout\" error instead of a precise \"connection closed\" error. This slows down debugging and CI/CD feedback.\n\n### Solution & Insight\nAdd a `ws.on('close', ...)` listener inside the `connectPhone` function that immediately rejects the promise with a descriptive error message containing the close code and reason. This ensures the smoke test fails fast when the connection drops, giving developers an accurate failure reason.\n\n### Impact\n- Reduces smoke test failure detection time from up to 45s to near-instant when the relay disconnects.\n- Provides clearer error messages for troubleshooting.\n- No change to normal operation; only affects error paths.", "branch_name": "bot/upgrade-1781131494", "edits": [{"file": "scripts/relay-smoke.js", "search": "    ws.on('open', () => send({ type: 'join_session', code: relayCode }));\n    ws.on('error', reject);\n    ws.on('message', (raw) => {", "replace": "    ws.on('open', () => send({ type: 'join_session', code: relayCode }));\n    ws.on('error', reject);\n    ws.on('close', (code, reason) => {\n      reject(new Error(`WebSocket closed unexpectedly with code ${code}: ${reason}`));\n    });\n    ws.on('message', (raw) => {"}]}
 
 **Reviewer**: APPROVE: The edit adds a critical 'close' event listener to the WebSocket in the smoke test, ensuring the promise rejects immediately if the connection drops unexpectedly rather than hanging until the 45-second global timeout expires. This is a real logic/reliability fix that improves debugging velocity and CI feedback. The search block matches the original file exactly, and the replacement is safe (subsequent reject/resolve calls on an already-settled Promise are no-ops).
+
+---
+
+## Cycle 1781199035
+**Scanner**: ### Step 1: Codebase Understanding
+The HADNX repository is a hybrid offensive/defensive web security platform that combines automated vulnerability scanning (headers, TLS, cookies) with an autonomous AI pentesting agent and a suite of interactive security tools (Nmap, SQLMap, Nuclei).
+
+The target files are:
+1. pyproject.toml: Defines the CLI tool's packaging, dependencies, and entry points.
+2. frontend/app/dashboard/scan/[id]/page.tsx: A Next.js client component that polls the backend for the status of a specific security scan and handles the transition from "scanning" to "completed" or "failed".
+
+The codebase uses a Django backend with Celery/Redis for async tasks and a Next.js 14 frontend with Tailwind CSS and shadcn/ui.
+
+### Step 2: Deep Analysis
+
+Security:
+- The frontend page relies on a URL parameter [id] for polling. While the backend likely handles authorization, the frontend does not explicitly handle 403 Forbidden or 401 Unauthorized responses from the API, which could lead to a generic "Failed to get scan status" error instead of a proper redirect to login.
+
+Logic:
+- Memory Leak/Race Condition: In frontend/app/dashboard/scan/[id]/page.tsx, the useEffect hook initiates a recursive polling mechanism using setTimeout. However, there is no cleanup function returned from useEffect. If the user navigates away from the page before the scan completes or fails, the timeout will still trigger, attempting to update the state of an unmounted component and calling the API unnecessarily.
+- Static Progress UI: The "Progress Steps" list in the frontend is hardcoded. It checks if status is "running" to mark the second step as complete, but the rest of the steps (Cookie Security, TLS/SSL, etc.) are hardcoded to "complete: false". This provides a deceptive user experience where the UI suggests the scan is stuck or not progressing even if the backend is actively completing those specific modules.
+
+Performance:
+- The polling interval is fixed at 2000ms. While acceptable, the lack of a cleanup function means multiple polling loops could potentially run if the useEffect re-triggers due to dependency changes.
+
+Architecture:
+- Error handling in the polling loop is overly broad (catch-all), masking specific API errors (e.g., 404 Scan Not Found vs 500 Server Error).
+
+Consistency:
+- The pyproject.toml is standard and consistent with the project's CLI goals.
+
+### Step 3: Pick ONE Improvement
+The most critical issue is the memory leak and potential state update crash in the frontend polling logic.
+
+Improvement: Implement a cleanup mechanism for the polling timeout in the ScanProgressPage.
+
+Criteria Check:
+- Real bug: Yes, it's a classic React memory leak/unmounted component state update pattern.
+- Broken functionality: Yes, it causes unnecessary network requests and potential console errors/crashes upon navigation.
+- Measurable impact: Prevents memory leaks and redundant API calls.
+
+### Step 4: Write the Executor's Plan
+
+WHAT to change:
+Implement a cleanup function in the useEffect hook to clear the active timeout when the component unmounts or when the scanId changes.
+
+WHERE in the file:
+In frontend/app/dashboard/scan/[id]/page.tsx, inside the useEffect hook (starting around line 21). Specifically, the pollStatus function uses setTimeout, but the timeout ID is not captured or cleared.
+
+WHY this matters:
+Currently, when a user navigates away from the scan progress page (e.g., clicks a sidebar link or goes back), the setTimeout continues to run in the background. When it eventually resolves, it calls setStatus or setError on a component that no longer exists, leading to memory leaks and "Warning: Can't perform a React state update on an unmounted component" errors.
+
+HOW to do it:
+1. Inside the useEffect, declare a variable (e.g., timeoutId) using let.
+2. Inside the pollStatus function, assign the result of the setTimeout calls to this timeoutId variable.
+3. Return a cleanup function from the useEffect hook that calls clearTimeout(timeoutId).
+4. Ensure all paths that trigger a new timeout (the "continue polling" path and the "redirect" path) update the timeoutId variable.
+
+**Executor**: {"title": "[LOGIC] Add cleanup for polling timeout to prevent memory leak", "body": "### Problem / Gap\nThe `useEffect` hook in the scan progress page initiates a recursive polling loop using `setTimeout`, but never captures or clears the timeout ID. When the user navigates away before the scan completes, the timeout continues to run and attempts to update state on an unmounted component, causing a memory leak and React warnings.\n\n### Solution & Insight\nCapture the timeout ID in a variable (`timeoutId`) and return a cleanup function from `useEffect` that calls `clearTimeout(timeoutId)`. This ensures that any pending timeout (polling or redirect) is cancelled when the component unmounts or the `scanId` changes.\n\n### Impact\nEliminates memory leaks and redundant API calls after navigation, preventing \"Can't perform a React state update on an unmounted component\" errors and improving resource usage.", "branch_name": "bot/upgrade-1781199035", "edits": [{"file": "frontend/app/dashboard/scan/[id]/page.tsx", "search": "  useEffect(() => {\n    if (!scanId) return;\n\n    const pollStatus = async () => {\n      try {\n        const data = await api.getScanStatus(scanId);\n        setStatus(data);\n\n        if (data.status === \"completed\") {\n          // Redirect to report after a short delay\n          setTimeout(() => {\n            router.push(`/dashboard/report/${scanId}`);\n          }, 1500);\n        } else if (data.status === \"failed\") {\n          setError(data.error_message || \"Scan failed\");\n        } else {\n          // Continue polling\n          setTimeout(pollStatus, 2000);\n        }\n      } catch (err) {\n        setError(\"Failed to get scan status\");\n      }\n    };\n\n    pollStatus();\n  }, [scanId, router]);", "replace": "  useEffect(() => {\n    if (!scanId) return;\n\n    let timeoutId: ReturnType<typeof setTimeout> | undefined;\n\n    const pollStatus = async () => {\n      try {\n        const data = await api.getScanStatus(scanId);\n        setStatus(data);\n\n        if (data.status === \"completed\") {\n          // Redirect to report after a short delay\n          timeoutId = setTimeout(() => {\n            router.push(`/dashboard/report/${scanId}`);\n          }, 1500);\n        } else if (data.status === \"failed\") {\n          setError(data.error_message || \"Scan failed\");\n        } else {\n          // Continue polling\n          timeoutId = setTimeout(pollStatus, 2000);\n        }\n      } catch (err) {\n        setError(\"Failed to get scan status\");\n      }\n    };\n\n    pollStatus();\n\n    return () => {\n      if (timeoutId) clearTimeout(timeoutId);\n    };\n  }, [scanId, router]);"}]}
+
+**Reviewer**: APPROVE: Fixes a real memory leak where the polling timeout continues to fire after the component unmounts. The search block matches the original file exactly, the replacement is valid TypeScript/React, and the change aligns with the scanner's plan.
 
 ---
