@@ -92,3 +92,4 @@
 - **REJECTED by Reviewer**: Executor on IntellectSafe proposed manual_seed.py patch with truncated search block ('sourc') that mismatched original file content and left dangling dictionary fields after list closure, causing SyntaxError.
 - **REJECTED by Reviewer**: Repo: Kelegam-Tech — Executor submitted empty edits after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable.
 - **REJECTED by Reviewer**: Repo: Kelegam-Tech — Executor submitted empty edits again after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable on this repo.
+- **REJECTED by Reviewer**: Executor proposed single-line trailing-slash fix on model-unfetter; rejected for insufficient substance — must bundle with other CLI fixes identified by Scanner.
