@@ -5537,3 +5537,58 @@ NO_ACTIONABLE_IMPROVEMENTS
 **Reviewer**: REJECTED x2: Do not submit empty edits when the Scanner reports no actionable improvements. You must identify a real bug, security issue, performance fix, or substantive cleanup that the Scanner missed, or bundle changes with other meaningful improvements. Empty edits are never acceptable on this repo.
 
 ---
+
+## Cycle 1781639978
+**Scanner**: ### Step 1: Codebase Understanding
+The git-pulse repository is a developer-centric social platform that integrates with GitHub to allow users to share updates, announce releases, and track trending projects.
+
+The target file `apps/web/src/app/api/posts/[id]/comments/route.ts` is a Next.js API route handler that manages the creation of comments on specific posts, including support for threaded replies (parent comments) and rate limiting.
+
+The codebase uses Next.js 15 (App Router), TypeScript, Prisma ORM with a PostgreSQL (Neon) database, and NextAuth.js for authentication.
+
+### Step 2: Deep Analysis
+
+**Security**
+- Input Validation: The code checks if `content` exists and is under 1000 characters. However, it does not trim the content. A user could send a string of 1000 spaces, effectively bypassing the "required" check and creating empty-looking comments.
+- Authorization: The route correctly verifies the session and ensures the user exists in the database before allowing a comment.
+
+**Logic**
+- Post Existence Check: The code extracts `postId` from the params and uses it to create a comment. However, it NEVER verifies if the post with that `postId` actually exists in the database. This allows users to attach comments to non-existent posts, polluting the database with orphaned records.
+- Parent Comment Validation: The code correctly verifies that if a `parentId` is provided, the parent comment must exist.
+
+**Performance**
+- Database Queries: The route performs three sequential database lookups (User, Parent Comment, and then the Create operation). While not a massive bottleneck, the User lookup could potentially be optimized if the session object contained the DB ID.
+
+**Architecture**
+- Error Handling: The try-catch blocks are present, but the inner try-catch for the main logic is slightly messy with inconsistent indentation.
+
+**Consistency**
+- Indentation: There is a significant indentation mismatch in the main logic block (the section starting from `const { id: postId } = params;` is not indented relative to the try block).
+
+### Step 3: Pick ONE Improvement
+I will fix the missing Post existence validation.
+
+**Reasoning**: Currently, the API allows the creation of comments for any arbitrary string passed as the `id` in the URL path. This is a logic bug that leads to data corruption (orphaned comments) and allows an attacker or a bug in the frontend to spam the database with comments linked to non-existent posts. This is a meaningful improvement to data integrity.
+
+### Step 4: Executor's Plan
+
+**WHAT**
+Add a validation step to ensure the post associated with the `postId` exists in the database before allowing a comment to be created.
+
+**WHERE**
+In `apps/web/src/app/api/posts/[id]/comments/route.ts`, inside the `POST` function. The check should be placed after the rate limit check and before the user lookup, specifically after the line `const { id: postId } = params;`.
+
+**WHY**
+Without this check, the API accepts any `postId` from the URL. If a user provides a random UUID or a deleted post ID, Prisma will create the comment record because the foreign key constraint might not be strictly enforced or the system should explicitly handle the 404 error for the post to provide a clear API response. This prevents orphaned data.
+
+**HOW**
+1. Locate the line `const { id: postId } = params;`.
+2. Immediately after this line, implement a Prisma query to find a unique post where the `id` matches `postId`.
+3. If the post is not found (null/undefined), return a `NextResponse.json` with an error message "Post not found" and a status code of 404.
+4. Ensure this check happens before the user lookup and the comment creation logic to fail fast.
+
+**Executor**: {"title": "[LOGIC] Add post existence validation before creating comment", "body": "### Problem / Gap\nThe API route for creating comments does not verify that the target post exists. This allows comments to be attached to non-existent or deleted posts, leading to orphaned records and potential data pollution.\n\n### Solution & Insight\nAdded a Prisma query to check if the post with the given `postId` exists immediately after extracting the ID from the URL parameters. If the post is not found, the route returns a 404 error before any further processing, failing fast and preventing orphaned comments.\n\n### Impact\nEnsures data integrity by preventing comments on non-existent posts. Provides a clear API response (404) for invalid post IDs, improving API robustness and preventing database clutter.", "branch_name": "bot/upgrade-1781639978", "edits": [{"file": "apps/web/src/app/api/posts/[id]/comments/route.ts", "search": "const { id: postId } = params;\nconst body = await req.json();\nconst { content, parentId } = body;\n\nif (!content || content.length > 1000) {\n    return NextResponse.json({ error: \"Content is required\" }, { status: 400 });\n}\n\n", "replace": "const { id: postId } = params;\n\nconst post = await prisma.post.findUnique({ where: { id: postId } });\nif (!post) {\n    return NextResponse.json({ error: \"Post not found\" }, { status: 404 });\n}\n\nconst body = await req.json();\nconst { content, parentId } = body;\n\nif (!content || content.length > 1000) {\n    return NextResponse.json({ error: \"Content is required\" }, { status: 400 });\n}\n\n"}]}
+
+**Reviewer**: APPROVE: Fixes a real data integrity bug by validating post existence before comment creation, exactly matching the Scanner's plan. The search block matches the original file content, and the replacement is valid, production-ready TypeScript that fails fast with a proper 404 instead of creating orphaned comments.
+
+---
