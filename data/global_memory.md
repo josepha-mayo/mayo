@@ -95,3 +95,4 @@
 - **REJECTED by Reviewer**: Executor proposed single-line trailing-slash fix on model-unfetter; rejected for insufficient substance — must bundle with other CLI fixes identified by Scanner.
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor repeated empty-edit submission after Scanner's NO_ACTIONABLE verdict; blocked again for lack of substance. Empty edits are never acceptable.
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor submitted empty edits after NO_ACTIONABLE verdict; blocked for lack of substance. Must find real bugs or substantive cleanup.
+- **Repo: git-pulse**: [LOGIC] Add post existence validation before creating comment. (Ref: disabled - email spam) - *Status: SKIPPED*
