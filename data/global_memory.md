@@ -98,3 +98,4 @@
 - **Repo: git-pulse**: [LOGIC] Add post existence validation before creating comment. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Executor submitted empty edits on HOLYKEYZ profile repo despite broken badge URLs being present; blocked for lack of substance. Empty edits are never acceptable — must fix broken image placeholders or bundle with substantive cleanup.
 - **REJECTED by Reviewer**: Executor attempted trivial README badge tweaks on HOLYKEYZ profile repo again; search blocks mismatched actual file content (%[IMAGE_FILE] vs valid %2300599C.svg URLs) and repo explicitly bans trivial README edits.
+- **Repo: HADNX**: [SEC] Fix Broken Object Level Authorization in report export. (Ref: disabled - email spam) - *Status: SKIPPED*
