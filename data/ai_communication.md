@@ -5556,3 +5556,64 @@ Verdict: NO_ACTIONABLE_IMPROVEMENTS
 **Reviewer**: REJECTED x2: STOP proposing trivial README edits on the HOLYKEYZ profile repository. Global memory contains multiple explicit rejections banning such changes on this repo. The Scanner correctly found NO_ACTIONABLE_IMPROVEMENTS. Additionally, your search blocks are factually incorrect: the file does not contain `%[IMAGE_FILE]` placeholders; it contains valid, working shields.io badge URLs with `.svg` extensions and URL-encoded colors. If you work on this repo in the future, only propose fixes for actual broken functionality or security issues, and ensure your search blocks exactly match the current file content.
 
 ---
+
+## Cycle 1781822905
+**Scanner**: ### Step 1: Codebase Understanding
+The HADNX repository is a hybrid offensive/defensive web security platform that combines automated vulnerability scanning, compliance reporting, and an AI-driven pentesting agent.
+
+The target file backend/apps/reports/views.py implements the API logic for managing and exporting security reports, acting as the bridge between the scan results and the final user-facing report. The file frontend/tsconfig.json defines the TypeScript compiler configuration for the Next.js frontend.
+
+The codebase uses Django and Django REST Framework (DRF) for the backend, and Next.js 14 with TypeScript and Tailwind CSS for the frontend.
+
+### Step 2: Deep Analysis
+
+Security:
+- In backend/apps/reports/views.py, the export action uses a query parameter 'format' to determine the feature name (export_json, export_pdf). While it checks for paid features, it does not validate that 'fmt' is restricted to a specific allow-list (e.g., ['json', 'pdf']). If the is_paid_feature function does not handle unexpected strings safely, this could lead to unpredictable behavior, though the current implementation is relatively contained.
+
+Logic:
+- In backend/apps/reports/views.py, the export method uses get_or_create for the Report object. However, it does not verify if the user requesting the export actually owns the Scan associated with the scan_id. This is a Broken Object Level Authorization (BOLA) vulnerability. Any authenticated user could potentially export reports for any scan ID by guessing the ID.
+
+Performance:
+- The ReportViewSet uses select_related('scan'), which is a good optimization to prevent N+1 queries when listing reports.
+
+Architecture:
+- The PDF export logic in the export method is currently a stub (simulation). While this is a missing feature, it is an intentional "to be implemented" state rather than a bug.
+
+Consistency:
+- The import of is_paid_feature is performed inside the method. While this avoids circular imports in some Django setups, it is generally less performant and less standard than top-level imports.
+
+DX:
+- tsconfig.json is standard for a Next.js project and requires no changes.
+
+### Step 3: Pick ONE Improvement
+The most critical issue is the Broken Object Level Authorization (BOLA) in the export action of ReportViewSet.
+
+Improvement: Fix missing ownership validation in the export method.
+Criteria Check:
+- Real bug: Yes, it allows unauthorized access to reports.
+- Broken functionality: Yes, the security boundary is broken.
+- Measurable impact: High security fix (prevents data leakage between users).
+
+### Step 4: Write the Executor's Plan
+
+WHAT to change:
+Implement an ownership check in the export method to ensure the requesting user has permission to access the scan they are trying to export.
+
+WHERE in the file:
+In backend/apps/reports/views.py, inside the ReportViewSet class, specifically within the export method. The logic needs to be inserted after the line where the scan object is retrieved using get_object_or_404(Scan, pk=scan_id).
+
+WHY this matters:
+Currently, the endpoint accepts a scan_id from the URL and returns the report data without verifying if the authenticated user is the owner of that scan. This allows any user to access any other user's security reports by simply iterating or guessing scan IDs.
+
+HOW to do it:
+1. Locate the export method in ReportViewSet.
+2. Find the line where the scan object is fetched: scan = get_object_or_404(Scan, pk=scan_id).
+3. Immediately after fetching the scan, add a check to verify if the scan's user (or the user associated with the scan) matches the request.user.
+4. If the users do not match, return a Response with a 403 Forbidden status and an error message indicating that the user does not have permission to access this scan.
+5. Ensure the check handles cases where the scan might not have a user assigned (if applicable) to prevent attribute errors.
+
+**Executor**: {"title": "[SEC] Fix Broken Object Level Authorization in report export", "body": "### Problem / Gap\nThe export endpoint (`/api/reports/{scan_id}/export`) fetches a scan by ID and returns its report without verifying that the authenticated user owns the scan. This allows any authenticated user to access any other user's security reports by guessing or iterating scan IDs (BOLA).\n\n### Solution & Insight\nAdd an ownership check immediately after retrieving the scan object. If the scan's `user` field does not match `request.user`, return a 403 Forbidden response. The check uses `getattr(scan, 'user', None)` to safely handle cases where the user field might be missing, preventing attribute errors.\n\n### Impact\nPrevents unauthorized access to sensitive security reports, closing a high-severity data leakage vulnerability. No functional change for legitimate users.", "branch_name": "bot/fix-bola-export-ownership", "edits": [{"file": "backend/apps/reports/views.py", "search": "        # Get or create report for this scan\n        scan = get_object_or_404(Scan, pk=scan_id)\n        report, _ = Report.objects.get_or_create(scan=scan)", "replace": "        # Get or create report for this scan\n        scan = get_object_or_404(Scan, pk=scan_id)\n        if getattr(scan, 'user', None) != request.user:\n            return Response(\n                {'error': 'You do not have permission to access this scan.'},\n                status=403\n            )\n        report, _ = Report.objects.get_or_create(scan=scan)"}]}
+
+**Reviewer**: APPROVE: The edit fixes a real Broken Object Level Authorization (BOLA) vulnerability in the export method by adding an ownership check after fetching the Scan object. The search block matches the original file exactly, the replacement is valid and production-ready DRF code, and the change is substantive and security-critical.
+
+---
