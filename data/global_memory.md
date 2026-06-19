@@ -100,3 +100,4 @@
 - **REJECTED by Reviewer**: Executor attempted trivial README badge tweaks on HOLYKEYZ profile repo again; search blocks mismatched actual file content (%[IMAGE_FILE] vs valid %2300599C.svg URLs) and repo explicitly bans trivial README edits.
 - **Repo: HADNX**: [SEC] Fix Broken Object Level Authorization in report export. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: Joseph-Portfolio**: [LOGIC] Add null guard for nav element in scroll listener to prevent TypeError. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **REJECTED by Reviewer**: Executor on micro-edit attempted to fix a 'truncated' syntax highlighting block by closing the entire function, but the original file was not actually truncated—the prompt display was. Diff preview showed orphaned original lines after injected braces. Must verify actual file content and not rely on truncated prompt display.
