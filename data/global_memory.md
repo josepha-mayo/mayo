@@ -101,3 +101,4 @@
 - **Repo: HADNX**: [SEC] Fix Broken Object Level Authorization in report export. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: Joseph-Portfolio**: [LOGIC] Add null guard for nav element in scroll listener to prevent TypeError. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Executor on micro-edit attempted to fix a 'truncated' syntax highlighting block by closing the entire function, but the original file was not actually truncated—the prompt display was. Diff preview showed orphaned original lines after injected braces. Must verify actual file content and not rely on truncated prompt display.
+- **REJECTED by Reviewer**: Executor proposed micro-edit syntax highlighting fix with search block 'prev_' that failed to match original file indentation/content; diff preview showed no changes. Likely confused prompt truncation with actual repo truncation.
