@@ -105,3 +105,4 @@
 - **REJECTED by Reviewer**: Repo git-pulse: Executor proposed trivial manifest icon path fix with search block '/[IMAGE_FILE]' that mismatched actual file content ('/logo.png'); blocked for triviality and search mismatch. Must bundle with substantive logic fixes.
 - **REJECTED by Reviewer**: git-pulse executor ignored scanner plan and introduced a functional bug by adding a recursion depth parameter as the second argument to a function used directly in Array.prototype.map, which passes the array index as depth.
 - **REJECTED by Reviewer**: Executor submitted empty edits on HADNX again after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — empty edits are never acceptable.
+- **REJECTED by Reviewer**: Executor repeated empty-edit submission on HADNX after NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
