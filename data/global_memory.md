@@ -110,3 +110,4 @@
 - **REJECTED by Reviewer**: Executor repeated banned trivial single-line image-placeholder removal on Kelegam-Tech; search block failed/diff showed no changes.
 - **REJECTED by Reviewer**: Executor repeated banned trivial single-line image-placeholder removal on Kelegam-Tech; search block failed to match and repo history rejects these as insubstantial.
 - **REJECTED by Reviewer**: Repo: SWARMs-Debate-Primitive — Executor submitted empty edits after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable on this repo.
+- **REJECTED by Reviewer**: Executor submitted empty edits on SWARMs-Debate-Primitive after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — empty edits are never acceptable.
