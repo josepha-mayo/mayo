@@ -108,3 +108,4 @@
 - **REJECTED by Reviewer**: Executor repeated empty-edit submission on HADNX after NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
 - **Repo: DR-OPIC**: [LOGIC] Prevent None failure signature from skewing training weights. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Executor repeated banned trivial single-line image-placeholder removal on Kelegam-Tech; search block failed/diff showed no changes.
+- **REJECTED by Reviewer**: Executor repeated banned trivial single-line image-placeholder removal on Kelegam-Tech; search block failed to match and repo history rejects these as insubstantial.
