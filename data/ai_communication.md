@@ -5725,3 +5725,59 @@ HOW:
 **Reviewer**: APPROVE: The edits correctly fix the logic bug identified by the Scanner: they prevent None signatures from polluting the failure frequency Counter in schedule_round and ensure schedule_group passes a string (empty when no failure) to _train_weight instead of None. Search blocks match the original file exactly, and the replacements are minimal, valid Python.
 
 ---
+
+## Cycle 1781989193
+**Scanner**: ### Step 1: Codebase Understanding
+The repository Kelegam-Tech is a professional corporate landing page for a technology services company, built using Next.js (App Router), TypeScript, Tailwind CSS, and Framer Motion.
+
+The target file src/components/home/CTASection.tsx is a Call-to-Action component designed to encourage users to contact the company, featuring animated text and a primary action button.
+
+The codebase follows a modern React pattern using functional components, Tailwind utility classes for styling, and Framer Motion for scroll-triggered animations.
+
+### Step 2: Deep Analysis
+
+Security: No vulnerabilities found. The component is purely presentational and contains no user input or sensitive data.
+
+Logic: There is a critical syntax error in the JSX. In the second background div, the bg-[url("[IMAGE_REMOVED]")] attribute contains nested double quotes which will break the JSX parser/compiler.
+
+Performance: The component uses Framer Motion's whileInView, which is efficient. No memory leaks or redundant calls detected.
+
+Architecture: The component is well-structured as a client component.
+
+Features: No missing critical functionality.
+
+Testing: Not applicable for this presentational component.
+
+DX: The tsconfig.json is standard for a Next.js project.
+
+Consistency: Styling is consistent with the rest of the project's theme.
+
+Dead Code: The div containing the broken image URL is effectively dead/broken code as it points to a placeholder that does not exist and contains invalid syntax.
+
+### Step 3: Pick ONE Improvement
+
+The improvement is a Logic/Syntax fix.
+
+The line containing bg-[url("[IMAGE_REMOVED]")] is syntactically invalid in JSX because of the nested double quotes within the className string. This will cause a compilation error or a runtime crash depending on the build environment's tolerance. Furthermore, the URL is a placeholder ([IMAGE_REMOVED]), meaning the element serves no visual purpose and currently only serves to break the build.
+
+This meets the criteria: it fixes a runtime/compilation error and removes broken code.
+
+### Step 4: Write the Executor's Plan
+
+WHAT to change: Remove the broken background image div that contains the invalid URL syntax.
+
+WHERE in the file: In src/components/home/CTASection.tsx, locate the div immediately following the Background Gradient div. The specific line to remove is the one containing the className "absolute inset-0 bg-[url("[IMAGE_REMOVED]")] opacity-10 dark:opacity-20 pointer-events-none z-0".
+
+WHY this matters: The nested double quotes inside the className string are a syntax error in JSX. Additionally, the image source is a placeholder that does not exist in the public directory, making the element both broken and useless.
+
+HOW to do it:
+1. Open src/components/home/CTASection.tsx.
+2. Find the line: <div className="absolute inset-0 bg-[url("[IMAGE_REMOVED]")] opacity-10 dark:opacity-20 pointer-events-none z-0" />.
+3. Delete this entire line.
+4. Ensure the remaining Background Gradient div and the main container div remain intact.
+
+**Executor**: {"title": "[LOGIC] Fix JSX syntax error by removing broken background image div", "body": "### Problem / Gap\nThe CTASection component contains a div with className containing nested double quotes: `bg-[url(\"[IMAGE_REMOVED]\")]`. This is invalid JSX and will cause a compilation error. Additionally, the image URL is a placeholder that does not exist, making the element non-functional.\n\n### Solution & Insight\nRemove the entire broken div element. This eliminates the syntax error and cleans up dead code.\n\n### Impact\nFixes a build-breaking syntax error, ensuring the project compiles successfully. Removes dead code that served no visual purpose.", "branch_name": "bot/upgrade-1781989193", "edits": [{"file": "src/components/home/CTASection.tsx", "search": "      <div className=\"absolute inset-0 bg-[url(\"[IMAGE_REMOVED]\")] opacity-10 dark:opacity-20 pointer-events-none z-0\" />", "replace": ""}]}
+
+**Reviewer**: REJECTED x2: Stop proposing single-line broken image/favicon placeholder removals on Kelegam-Tech. This pattern has been rejected repeatedly as trivial and is explicitly banned on this repo. You must bundle changes with substantive logic improvements (3+ lines, real bug fixes, or feature additions). Also ensure your search blocks match the original file exactly—diff preview showed no changes because the search was not found.
+
+---
