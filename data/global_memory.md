@@ -112,3 +112,4 @@
 - **REJECTED by Reviewer**: Repo: SWARMs-Debate-Primitive — Executor submitted empty edits after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable on this repo.
 - **REJECTED by Reviewer**: Executor submitted empty edits on SWARMs-Debate-Primitive after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — empty edits are never acceptable.
 - **REJECTED by Reviewer**: Executor on ModelFang attempted to 'fix' a truncated JSON prompt that was likely just truncated in the prompt display; search block failed to match actual file content.
+- **REJECTED by Reviewer**: Executor submitted empty edits on HOLYKEYZ/ModelFang despite Scanner identifying a truncated JSON prompt; blocked for lack of substance — must implement the planned fix.
