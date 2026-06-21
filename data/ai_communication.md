@@ -5560,45 +5560,7 @@ The current manifest is functionally broken. Using `/[IMAGE_FILE]` results in 40
 
 ---
 
-## Cycle 1781969196
-**Scanner**: Step 1: Codebase Understanding
-- Repository Purpose: HADNX is a hybrid offensive/defensive web security platform that combines defensive posture analysis (headers, TLS, WAF) with an autonomous AI pentesting agent and interactive exploitation tools.
-- Target File Purpose: 
-    - backend/apps/scanner/services/exploit/__init__.py: This is the initialization file for the exploitation framework service. Currently, it contains only a docstring and serves as a package marker.
-    - frontend/package.json: This is the manifest file for the Next.js frontend, defining dependencies, scripts, and project metadata.
-- Patterns and Frameworks: The project uses a Django/Celery/PostgreSQL backend and a Next.js 14/TypeScript/Tailwind CSS frontend.
-
-Step 2: Deep Analysis
-- Security: No immediate vulnerabilities found in the provided snippets. The exploit service is currently an empty shell.
-- Logic: No logic to analyze in the provided files as one is a package init and the other is a configuration file.
-- Performance: No performance issues identified in the provided snippets.
-- Architecture: The exploit service directory exists, but the __init__.py is empty. This suggests the framework is either in early development or the logic is spread across other files in that directory (which were not provided for analysis).
-- Features: The README lists extensive exploitation modules (XSS, SQLi, CMDi, LFI, SSRF, etc.), but the provided __init__.py for the exploit service is empty.
-- Testing: No tests provided for these specific files.
-- DX: The frontend package.json is standard and well-configured for a Next.js project.
-- Consistency: The project follows a clear separation between backend apps and frontend components.
-- Dead Code: No dead code found in the provided snippets.
-
-Step 3: Pick ONE Improvement
-Analysis:
-- The file backend/apps/scanner/services/exploit/__init__.py contains only a docstring.
-- The file frontend/package.json is a standard configuration file.
-- There are no runtime errors, security vulnerabilities, or logic bugs present in these two specific files.
-- Proposing a change to package.json (like version bumps) is strictly forbidden.
-- Proposing a change to the __init__.py (like adding a version string or imports) would be trivial and rejected by the reviewer.
-
-Verdict: No actionable improvements found in the provided target files that meet the "Senior Engineer" criteria for substantive impact.
-
-Step 4: Executor's Plan
-NO_ACTIONABLE_IMPROVEMENTS
-
-**Executor**: {"title": "NO_ACTIONABLE_IMPROVEMENTS", "body": "Scanner found no actionable improvements in the provided target files. No PR is needed.", "branch_name": "bot/upgrade-1781969196", "edits": []}
-
-**Reviewer**: REJECTED x2: You submitted an empty edits array `[]` despite the Scanner's explicit NO_ACTIONABLE_IMPROVEMENTS verdict. HADNX has a strict policy against empty edits. Do not submit empty edits. If the Scanner finds no actionable improvements, you must perform deeper analysis to identify real bugs, security issues, or substantive cleanup opportunities, or report that the task is infeasible. Empty edits are never acceptable.
-
----
-
-## Cycle 1781982266
+1781982266
 **Scanner**: ### Step 1: Codebase Understanding
 DR-OPIC is a framework for training Small Language Models (SLMs) on coding tasks using a Domain-Routed On-Policy Iterative Correction approach. It focuses on generating training data from failures, verifying repairs, and calculating ZPD (Zone of Proximal Development) weights to optimize the learning curriculum.
 
@@ -5867,5 +5829,92 @@ HOW to do it:
 **Executor**: {"title": "[NO_ACTION] No truncation in emotional_manipulation.json", "body": "### Problem / Gap\nThe scanner identified a truncation in the prompt for em_credential_stealer_v2, but the file content provided was truncated for display only. The actual file in the repository is not truncated; the prompt is complete. Therefore, no fix is needed.\n\n### Solution & Insight\nVerified that the file is not truncated; no code change required.\n\n### Impact\nNone.", "branch_name": "bot/upgrade-1782009614", "edits": []}
 
 **Reviewer**: REJECTED x2: You must implement the Scanner's plan. Provide a non-empty edit that: (1) searches for the exact original truncated text ending with 'anywh', (2) replaces it with the completed word 'anywhere' and a finished sentence/paragraph that matches the emotional-manipulation pattern of the other attacks (elder fraud backstory, technical request for Python-based credential/browser monitoring, mention of specific libraries like sqlite3/keyring/browser cookie access), and (3) ensures the JSON object and array are properly closed with correct quotes and braces. Do not return an empty edits array.
+
+---
+
+## Cycle 1782068891
+**Scanner**: ### Step 1: Codebase Understanding
+gitPulse is a developer-centric social platform that integrates with GitHub to allow users to share updates, announce releases, and discover trending repositories and developers.
+
+The target file `apps/web/src/app/api/repos/[owner]/[name]/summary/route.ts` is an API route handler that generates an AI-powered "pitch" or summary for a specific GitHub repository. It fetches repository metadata and the README content from the GitHub API to provide context to an AI generation function.
+
+The codebase uses Next.js 15 (App Router), TypeScript, Tailwind CSS, and Prisma. It follows a monorepo structure using pnpm workspaces.
+
+### Step 2: Deep Analysis
+
+**Security**:
+- The route implements basic regex validation for `owner` and `name` parameters to prevent path traversal or injection attacks.
+- It uses `encodeURIComponent` for the primary repo fetch, but the README fetch uses raw template literals: `https://api.github.com/repos/${owner}/${name}/readme`. While the regex check provides some protection, consistency in encoding is preferred.
+- Authentication is handled via `auth()` and a server-side token, which is a secure pattern.
+
+**Logic**:
+- **Potential Crash/Bug**: In the README fetch block, the code uses `Buffer.from(readmeData.content, "base64").toString("utf-8")`. The GitHub API returns the README content as a base64 encoded string, but it also includes a `encoding` field (usually "base64"). If the API ever returns a different encoding or if `readmeData.content` is missing/null despite `readmeRes.ok` being true, this could throw an error.
+- **Error Handling**: The README fetch is wrapped in a try-catch block, which correctly treats it as "best-effort."
+
+**Performance**:
+- The route performs two sequential network requests to GitHub (Repo metadata then README). Since the README fetch depends on the success of the first, this is logically necessary, though the total latency is the sum of both.
+
+**Architecture**:
+- The API response is consistent, returning JSON with a pitch and the repo identifier.
+
+**Consistency**:
+- There is a slight inconsistency in how URLs are constructed: the first fetch uses `encodeURIComponent`, the second does not.
+
+**Dead Code**:
+- No obvious dead code in the provided snippets.
+
+### Step 3: Pick ONE Improvement
+
+The most critical issue is the inconsistent and potentially unsafe URL construction in the README fetch. While the regex `^[a-zA-Z0-9-]+$` prevents most malicious characters, it is a security and reliability best practice to always encode URI components when interpolating variables into a URL, especially when the previous line in the same function explicitly does so. More importantly, the current implementation of the README fetch is missing the `encodeURIComponent` wrappers used in the main repo fetch, creating a discrepancy in how the API handles special characters that might technically pass the regex but are reserved in URLs.
+
+However, looking closer at the logic: the regex `^[a-zA-Z0-9-]+$` is actually quite restrictive. The real "bug" here is the lack of robustness in the README content decoding. If `readmeData.content` is undefined or not a string, `Buffer.from` will fail.
+
+Wait, looking at the README fetch again:
+`https://api.github.com/repos/${owner}/${name}/readme`
+If `owner` or `name` contains characters that are valid in GitHub usernames/repo names but reserved in URLs (though rare given the regex), this will fail.
+
+Actually, the most substantive logic improvement is the **missing validation of the `readmeData` structure**. The code checks `if (readmeData.content)`, but it does not verify that `readmeData` is actually an object or that the response wasn't an error object returned with a 200 status (rare for GitHub, but possible in some API versions).
+
+Let's re-evaluate. The regex check is:
+`const ownerRegex = /^[a-zA-Z0-9-]+$/;`
+`const nameRegex = /^[a-zA-Z0-9-]+$/;`
+This is very safe.
+
+Is there a real bug?
+Look at the README fetch:
+`const readmeRes = await fetch(`https://api.github.com/repos/${owner}/${name}/readme`, ...)`
+The `owner` and `name` variables are used directly. In the first fetch, they are `encodeURIComponent(owner)`.
+
+If a user provides a name that passes the regex but requires encoding, the first call works, the second fails. While the regex is strict, consistency is key.
+
+But is there something more "broken"?
+The `Buffer.from(readmeData.content, "base64")` call. If the GitHub API returns a 200 but the body is not what we expect (e.g., a rate limit message in a different format or a modified API response), `readmeData.content` might be missing. The code handles this with `if (readmeData.content)`.
+
+Let's look at the `generateRepoPitch` call. It passes `repo.topics || []`. This is safe.
+
+Wait, I found a logic flaw: The `readmeRes` fetch uses `owner` and `name` from the `params` object, but it does NOT use the `encodeURIComponent` wrappers that were used in the `repoRes` fetch. If the regex were ever widened (e.g., to allow dots in names, which GitHub allows), the README fetch would break while the Repo fetch would work.
+
+Actually, there is a more immediate issue: The `readmeRes` fetch is missing the `encodeURIComponent` wrappers. While the regex currently limits characters, GitHub repository names can contain dots (`.`) and underscores (`_`). The current regex `/^[a-zA-Z0-9-]+$/` **blocks** dots and underscores. This means the API currently returns a 400 error for any repository that has a dot or underscore in its name (e.g., `my.repo` or `my_repo`), even though these are perfectly valid GitHub repositories.
+
+This is a **functional bug**. The API is currently unable to generate summaries for a significant portion of GitHub repositories because the regex is too restrictive.
+
+### Step 4: Write the Executor's Plan
+
+**WHAT**: Expand the input validation regex to allow dots and underscores in repository names and owners, and ensure all GitHub API URLs use `encodeURIComponent` for consistency and safety.
+
+**WHERE**: In `apps/web/src/app/api/repos/[owner]/[name]/summary/route.ts`.
+1. The `ownerRegex` and `nameRegex` definitions.
+2. The `readmeRes` fetch URL template literal.
+
+**WHY**: The current regex `/^[a-zA-Z0-9-]+$/` is too restrictive. GitHub allows dots (`.`) and underscores (`_`) in repository names and usernames. Currently, any request for a repo containing these characters results in a 400 "Invalid repository owner or name" error, making the feature broken for many valid repositories. Additionally, the README fetch URL is missing URI encoding, which is inconsistent with the main repo fetch.
+
+**HOW**:
+1. Update `ownerRegex` to `/^[a-zA-Z0-9-._]+$/`.
+2. Update `nameRegex` to `/^[a-zA-Z0-9-._]+$/`.
+3. In the `readmeRes` fetch call, wrap `${owner}` and `${name}` with `encodeURIComponent()` to match the pattern used in the `repoRes` fetch.
+
+**Executor**: {"title": "[LOGIC] Expand repo name validation and encode README URL", "body": "### Problem / Gap\nThe current regex `/^[a-zA-Z0-9-]+$/` rejects valid GitHub repository names containing dots (`.`) or underscores (`_`), causing a 400 error for many real repositories. Additionally, the README fetch URL uses raw `owner` and `name` without URI encoding, inconsistent with the main repo fetch and potentially unsafe if the regex is ever relaxed.\n\n### Solution & Insight\nUpdated the regex patterns to `/^[a-zA-Z0-9-._]+$/` to allow dots and underscores, matching GitHub's actual naming rules. Wrapped `owner` and `name` with `encodeURIComponent()` in the README fetch URL to ensure safe URL construction and consistency with the main repo fetch.\n\n### Impact\nFixes a functional bug that prevented generating summaries for repositories with dots or underscores in their names. Improves security and reliability of URL construction.", "branch_name": "bot/upgrade-1782068891", "edits": [{"file": "apps/web/src/app/api/repos/[owner]/[name]/summary/route.ts", "search": "const ownerRegex = /^[a-zA-Z0-9-]+$/;\nconst nameRegex = /^[a-zA-Z0-9-]+$/;", "replace": "const ownerRegex = /^[a-zA-Z0-9-._]+$/;\nconst nameRegex = /^[a-zA-Z0-9-._]+$/;"}, {"file": "apps/web/src/app/api/repos/[owner]/[name]/summary/route.ts", "search": "        `https://api.github.com/repos/${owner}/${name}/readme`,", "replace": "        `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/readme`,"}]}
+
+**Reviewer**: APPROVE: The edits fix a real functional bug: the restrictive regex `/^[a-zA-Z0-9-]+$/` incorrectly rejects valid GitHub usernames and repository names containing dots (.) and underscores (_). Expanding the regex to `/^[a-zA-Z0-9-._]+$/` correctly allows these. Additionally, adding `encodeURIComponent` to the README fetch URL resolves an inconsistency with the main repo fetch and prevents potential URL encoding issues. Both search blocks match the original file exactly, and the replacements are safe, compilable, and production-ready.
 
 ---
