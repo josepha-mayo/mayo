@@ -121,3 +121,4 @@
 - **REJECTED by Reviewer**: DR-OPIC Executor ignored Scanner's plan to fix critical test-nesting false-positive bug and proposed tangential OSError handling instead; blocked for being off-topic and insubstantial.
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor repeated empty-edit submission after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable.
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor proposed trivial CSS class swap (text-white -> text-foreground) after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Must respect NO_ACTIONABLE verdicts.
+- **REJECTED by Reviewer**: Repo git-pulse: Executor repeated previously rejected trivial manifest icon path fix; search block '/[IMAGE_FILE]' mismatched actual '/logo.png' and ignored prior instruction to bundle with substantive logic fixes.
