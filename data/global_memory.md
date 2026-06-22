@@ -124,3 +124,4 @@
 - **REJECTED by Reviewer**: Repo git-pulse: Executor repeated previously rejected trivial manifest icon path fix; search block '/[IMAGE_FILE]' mismatched actual '/logo.png' and ignored prior instruction to bundle with substantive logic fixes.
 - **REJECTED by Reviewer**: git-pulse executor proposed manifest icon fix with search block '/logo.png' that mismatched original file content '/[IMAGE_FILE]'; blocked for search mismatch. Trivial placeholder fixes on this repo require exact search blocks and must be bundled with substantive logic changes.
 - **REJECTED by Reviewer**: Executor submitted empty edits on HADNX again after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — empty edits are never acceptable. Must find real bugs or substantive cleanup.
+- **REJECTED by Reviewer**: Executor submitted empty edits on HADNX after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — empty edits are never acceptable.
