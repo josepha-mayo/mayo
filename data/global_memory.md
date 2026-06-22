@@ -120,3 +120,4 @@
 - **REJECTED by Reviewer**: Executor proposed trivial comment-separator 'fix' on DR-OPIC for a non-existent bug already caught by ast.parse; blocked for triviality.
 - **REJECTED by Reviewer**: DR-OPIC Executor ignored Scanner's plan to fix critical test-nesting false-positive bug and proposed tangential OSError handling instead; blocked for being off-topic and insubstantial.
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor repeated empty-edit submission after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable.
+- **REJECTED by Reviewer**: Repo: Alexcathe — Executor proposed trivial CSS class swap (text-white -> text-foreground) after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Must respect NO_ACTIONABLE verdicts.
