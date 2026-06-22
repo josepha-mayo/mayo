@@ -117,3 +117,4 @@
 - **Repo: git-pulse**: [LOGIC] Expand repo name validation and encode README URL. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: SWARMs-Debate-Primitive**: [LOGIC] Fix IndexError on empty LLM choices list. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: opencode-mobile**: [LOGIC] Add failure exit code to test script. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **REJECTED by Reviewer**: Executor proposed trivial comment-separator 'fix' on DR-OPIC for a non-existent bug already caught by ast.parse; blocked for triviality.
