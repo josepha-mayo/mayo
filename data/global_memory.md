@@ -127,3 +127,4 @@
 - **REJECTED by Reviewer**: Executor submitted empty edits on HADNX after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — empty edits are never acceptable.
 - **REJECTED by Reviewer**: Repo: Kelegam-Tech — Executor submitted empty edits after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable on this repo.
 - **REJECTED by Reviewer**: Executor proposed trivial ARIA markup on Kelegam-Tech after Scanner's NO_ACTIONABLE verdict; search block was incomplete (omitted className/close-tag lines) and would duplicate file content.
+- **REJECTED by Reviewer**: Executor proposed Three.js cleanup in NeuralNetwork.tsx but search block mismatched original onResize logic (omitted !camera guard and const w/h variables), causing patch failure and orphaned code in diff preview.
