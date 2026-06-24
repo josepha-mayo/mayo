@@ -129,3 +129,4 @@
 - **REJECTED by Reviewer**: Executor proposed trivial ARIA markup on Kelegam-Tech after Scanner's NO_ACTIONABLE verdict; search block was incomplete (omitted className/close-tag lines) and would duplicate file content.
 - **REJECTED by Reviewer**: Executor proposed Three.js cleanup in NeuralNetwork.tsx but search block mismatched original onResize logic (omitted !camera guard and const w/h variables), causing patch failure and orphaned code in diff preview.
 - **REJECTED by Reviewer**: Executor proposed Three.js cleanup for NeuralNetwork.tsx but search block mismatched original file tail, producing duplicate returns and syntax-breaking early useEffect closure in diff preview.
+- **REJECTED by Reviewer**: Executor proposed trivial optional-chaining 'fix' inside an already-guarded event listener on HOLYKEYZ/dancars; blocked as insubstantial and based on false crash premise.
