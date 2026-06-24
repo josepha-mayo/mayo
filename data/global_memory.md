@@ -131,3 +131,4 @@
 - **REJECTED by Reviewer**: Executor proposed Three.js cleanup for NeuralNetwork.tsx but search block mismatched original file tail, producing duplicate returns and syntax-breaking early useEffect closure in diff preview.
 - **REJECTED by Reviewer**: Executor proposed trivial optional-chaining 'fix' inside an already-guarded event listener on HOLYKEYZ/dancars; blocked as insubstantial and based on false crash premise.
 - **REJECTED by Reviewer**: Executor on dancars ignored Scanner's navToggle plan and proposed a trivial single-line dead-code removal in updateHeaderForScroll instead.
+- **Repo: VULNRIX**: [LOGIC] Ensure NODE_ID is set in environment and warn on non-local default. (Ref: disabled - email spam) - *Status: SKIPPED*
