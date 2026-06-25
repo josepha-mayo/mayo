@@ -6202,3 +6202,48 @@ NO_ACTIONABLE_IMPROVEMENTS
 **Reviewer**: REJECTED x2: Do not propose edits when the Scanner returns NO_ACTIONABLE_IMPROVEMENTS. Only create edits for real bugs, crashes, security issues, or substantive improvements explicitly identified by the Scanner. Trivial additive changes to already-functional code are not acceptable.
 
 ---
+
+## Cycle 1782403950
+**Scanner**: ### Step 1: Codebase Understanding
+- **Repository Purpose**: This is a professional portfolio/business website for "DanCars," likely a construction or project management firm, showcasing their projects and providing a contact method.
+- **Target File Purpose**: `script.js` handles the client-side interactivity, including the mobile navigation toggle, a scroll-responsive header, an intersection observer for reveal animations, and a contact form that generates a mailto link.
+- **Patterns/Conventions**: Vanilla JavaScript using DOM manipulation, Lucide icons for iconography, and CSS class toggling for state management.
+
+### Step 2: Deep Analysis
+- **Security**: The contact form uses `encodeURIComponent` for the mailto link, which prevents basic URI injection. However, there is no sanitization of the input before it is placed into the `formStatus.textContent`, though `textContent` is safe from XSS.
+- **Logic**: 
+    - In `updateHeaderForScroll`, there is a logic flaw: if `siteHeader` is null, the code attempts to call `siteHeader?.classList.remove(...)`. While the optional chaining prevents a crash, the `if (!siteHeader)` block is redundant and slightly contradictory.
+    - The `updateHeaderForScroll` function adds `is-hidden` when scrolling down, but the `scrollend` event listener removes `is-hidden`. This creates a "jumpy" header experience where the header disappears during scroll and reappears only when the user stops completely.
+- **Performance**: The `updateHeaderForScroll` function is attached to the `scroll` event. While it uses `{ passive: true }`, it performs DOM manipulations on every single scroll tick.
+- **Architecture**: The `renderIcons` function is called frequently (every nav toggle). Since Lucide's `createIcons` scans the DOM for `data-lucide` attributes, calling it repeatedly on a small set of elements is acceptable, but inefficient.
+- **Features**: The contact form relies entirely on `mailto:`. If the user doesn't have a default mail client configured, the "submit" action does nothing after the status message appears, leaving the user stranded.
+- **Testing**: Basic validation exists for the contact form (checking for empty strings).
+- **Consistency**: The use of optional chaining (`?.`) is inconsistent. Some variables are checked with `if (!var)` and then used with `var?.`.
+- **Dead Code**: None identified.
+
+### Step 3: Pick ONE Improvement
+The most significant logic bug is in the `updateHeaderForScroll` function. Specifically, the logic that handles the `is-hidden` class creates a conflict with the `scrollend` listener and the `setTimeout`. 
+
+Currently, the code adds `is-hidden` immediately when `scrolled` is true, then sets a timeout to remove it after 160ms. However, the `scrollend` listener also removes it. If a user scrolls slowly or in short bursts, the header will flicker or disappear and reappear unpredictably. More importantly, the `if (!siteHeader)` block contains a logical contradiction: it checks if the header is missing, and if so, tries to remove classes from it.
+
+However, the most "broken" part of the UX is the `updateHeaderForScroll` logic where it adds `is-hidden` and then immediately schedules its removal via `setTimeout` while the user is still potentially scrolling. This causes the header to "strobe" during active scrolling.
+
+**Selected Fix**: Fix the contradictory null-check logic and the flickering header visibility logic in `updateHeaderForScroll`.
+
+### Step 4: Write the Executor's Plan
+- **WHAT**: Fix the contradictory null-guard and the flickering visibility logic in the header scroll handler.
+- **WHERE**: In `script.js`, inside the `updateHeaderForScroll` function. Specifically, the block starting with `if (!siteHeader)` and the subsequent logic handling `siteHeader.classList.add("is-hidden")`.
+- **WHY**: 
+    1. The current null-guard `if (!siteHeader) { siteHeader?.classList.remove(...) }` is logically unsound; if the header doesn't exist, you cannot remove classes from it.
+    2. The current scroll logic adds `is-hidden` and then uses a `setTimeout` to remove it 160ms later. Because this happens on every scroll event, the timeout is cleared and reset constantly, but the `is-hidden` class is applied instantly, causing the header to vanish and flicker during the scroll.
+- **HOW**:
+    1. Locate the `updateHeaderForScroll` function.
+    2. Replace the `if (!siteHeader)` block to simply `return` if the header is missing, removing the attempt to call `classList.remove` on a null object.
+    3. Modify the scroll logic: Instead of adding `is-hidden` immediately and using a timeout to remove it, the logic should be: if the user is scrolling (scrolled is true), the header should be `is-compact` and `is-hidden`. The `is-hidden` class should only be removed when the scroll stops (which is already handled by the `scrollend` listener) or when the user scrolls back to the top.
+    4. Remove the `navScrollTimer` and `window.setTimeout` logic entirely from this function, as it conflicts with the `scrollend` event listener and causes the flickering. The `scrollend` listener is the modern, performant way to handle the "reveal on stop" behavior.
+
+**Executor**: {"title": "[LOGIC] Fix contradictory null-guard and flickering header visibility in updateHeaderForScroll", "body": "### Problem / Gap\nThe `updateHeaderForScroll` function contains a contradictory null-guard that attempts to remove classes from a null header, and a timer-based visibility toggle that causes the header to flicker during scrolling. The `scrollend` listener already handles revealing the header when scrolling stops, making the timer redundant and conflicting.\n\n### Solution & Insight\n- Replace the `if (!siteHeader)` block with a simple early return, removing the impossible `classList.remove` call.\n- Remove the `setTimeout`/`navScrollTimer` logic that adds and then removes `is-hidden` during scroll. Instead, simply add `is-hidden` when scrolled, and rely on the existing `scrollend` listener to remove it when scrolling stops. When the user scrolls back to the top, `is-hidden` is removed immediately.\n\n### Impact\nEliminates header flicker during active scrolling, fixes a logical contradiction, and simplifies the scroll handler for better performance and reliability.", "branch_name": "bot/upgrade-1782403950", "edits": [{"file": "script.js", "search": "function updateHeaderForScroll() {\n  if (!siteHeader) {\n    siteHeader?.classList.remove(\"is-hidden\", \"is-compact\");\n    return;\n  }\n\n  const scrolled = window.scrollY > 24;\n  siteHeader.classList.toggle(\"is-compact\", scrolled);\n\n  if (!scrolled) {\n    siteHeader.classList.remove(\"is-hidden\");\n    return;\n  }\n\n  siteHeader.classList.add(\"is-hidden\");\n  window.clearTimeout(navScrollTimer);\n  navScrollTimer = window.setTimeout(() => {\n    siteHeader.classList.remove(\"is-hidden\");\n  }, 160);\n}", "replace": "function updateHeaderForScroll() {\n  if (!siteHeader) return;\n\n  const scrolled = window.scrollY > 24;\n  siteHeader.classList.toggle(\"is-compact\", scrolled);\n\n  if (!scrolled) {\n    siteHeader.classList.remove(\"is-hidden\");\n    return;\n  }\n\n  siteHeader.classList.add(\"is-hidden\");\n}"}]}
+
+**Reviewer**: APPROVE: The edit fixes a real logic bug: the null-guard was contradictory (attempting to remove classes from a null element), and the setTimeout logic caused header flicker during scroll, conflicting with the existing scrollend listener. The search block matches the original file exactly, and the replacement is valid, production-ready JavaScript.
+
+---
