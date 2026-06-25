@@ -135,3 +135,4 @@
 - **Repo: unfetter_proxy**: [LOGIC] Type-safe config loading to prevent crashes from malformed values. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor submitted empty edits after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable.
 - **REJECTED by Reviewer**: Executor ignored Scanner's NO_ACTIONABLE_IMPROVEMENTS verdict on Alexcathe and proposed trivial additive animation state; blocked for lack of substance and failure to respect scanner plan.
+- **REJECTED by Reviewer**: Executor submitted empty edits on HADNX after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
