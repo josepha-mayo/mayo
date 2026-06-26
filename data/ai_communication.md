@@ -6243,3 +6243,70 @@ The most critical issue is the **Missing File Type Validation**. Allowing arbitr
 **Reviewer**: APPROVE: The edit correctly implements the Scanner's critical security recommendation by adding a file extension whitelist before processing the upload. The search block matches the original file exactly, the replacement is valid TypeScript, fail-fast is preserved, and the change is substantive and security-focused.
 
 ---
+
+## Cycle 1782482002
+**Scanner**: ### Step 1: Codebase Understanding
+DR-OPIC is a framework for training Small Language Models (SLMs) on coding tasks using Domain-Routed On-Policy Iterative Correction. It focuses on generating verified training records (rollouts, repairs, and preference pairs) by executing student code against tests and calculating specific metrics like ZPD (Zone of Proximal Development) weights.
+
+The target file dr_opic/preference.py provides scalar mathematical helper functions used to compute loss components and margins for preference-based training (like DPO and ORPO), specifically handling log-probabilities and reward margins.
+
+The codebase uses a modular Python structure with a strong emphasis on mathematical correctness for SLM training, employing standard library math functions and type hinting.
+
+### Step 2: Deep Analysis
+
+Security:
+The functions in preference.py are pure mathematical transformations. There are no external inputs or shell executions here. However, the overall repo (as noted in the README) executes code in subprocesses, which is a known risk, but not present in this specific file.
+
+Logic:
+In orpo_odds_ratio, the code calculates the odds ratio using math.exp(chosen_logp). Since log-probabilities are typically negative (e.g., -0.5, -10.0), math.exp(logp) results in a value between 0 and 1. The logic uses a clamp (eps to 1-eps) to prevent log(0) or division by zero. However, if the input log-probabilities are very large positive numbers (which shouldn't happen in standard log-prob contexts but is possible if the input is raw logits), math.exp() will overflow to infinity, causing a crash.
+
+Performance:
+The functions are lightweight scalar operations. No performance bottlenecks identified.
+
+Architecture:
+The functions are decoupled and stateless, which is appropriate for a math utility module.
+
+Features:
+The current implementation of dpo_loss_scalar uses a numerically stable implementation of the softplus function (log(1 + exp(x))), which is good.
+
+Testing:
+There are no explicit guards against NaN or Inf inputs in the preference calculations, which could propagate through a training loop and crash a model trainer.
+
+DX:
+The functions are well-named and follow a consistent pattern.
+
+Consistency:
+Consistent use of type hints and math module.
+
+Dead Code:
+No dead code identified in the target file.
+
+### Step 3: Pick ONE Improvement
+
+I have identified a potential runtime crash in the orpo_odds_ratio function.
+
+The function calculates pc = math.exp(chosen_logp). In a production training environment, if a model produces an unexpectedly high log-probability (positive value) due to divergence or initialization issues, math.exp() will raise an OverflowError. While log-probs are usually negative, a robust library must handle the mathematical limits of the float64 type to prevent the entire training pipeline from crashing.
+
+This is a real logic/stability bug. Preventing an OverflowError in a training utility is a meaningful improvement that ensures the framework doesn't crash during long-running SLM experiments.
+
+### Step 4: Write the Executor's Plan
+
+WHAT to change:
+Add a numerical upper-bound clamp to the inputs of the exponential function in the orpo_odds_ratio function to prevent OverflowError.
+
+WHERE in the file:
+In dr_opic/preference.py, inside the function orpo_odds_ratio. Specifically, the lines where pc and pr are calculated using math.exp(chosen_logp) and math.exp(rejected_logp).
+
+WHY this matters:
+If chosen_logp or rejected_logp exceeds approximately 709, math.exp() will raise an OverflowError in Python. In the context of LLM training, numerical instability can lead to such values. Clamping the input ensures the function returns a value based on the maximum representable float rather than crashing the entire process.
+
+HOW to do it:
+1. Identify the lines calculating pc and pr.
+2. Wrap the log-probability inputs in a min() call to cap them at a safe maximum (e.g., 88.0 or 100.0), as the subsequent clamp to 1.0 - eps makes any value that results in exp(x) >= 1 redundant anyway.
+3. Ensure the existing eps clamping remains intact to prevent log(0).
+
+**Executor**: {"title": "[LOGIC] Prevent OverflowError in orpo_odds_ratio by capping log-probability inputs", "body": "### Problem / Gap\nIn `orpo_odds_ratio`, `math.exp(chosen_logp)` and `math.exp(rejected_logp)` can raise `OverflowError` if the log-probability values exceed ~709. While log-probs are typically negative, numerical instability or model divergence can produce large positive values, crashing the training pipeline.\n\n### Solution & Insight\nCap the log-probability inputs to a safe maximum (88.0) before exponentiation. Since the result is already clamped to `[eps, 1-eps]`, any value that would overflow is effectively capped to `1-eps` anyway. This prevents the overflow without altering the function's behavior for normal inputs.\n\n### Impact\nEliminates a potential runtime crash in long-running SLM training experiments, improving robustness without changing the mathematical output for valid inputs.", "branch_name": "bot/upgrade-1782482002", "edits": [{"file": "dr_opic/preference.py", "search": "    pc = min(1.0 - eps, max(eps, math.exp(chosen_logp)))\n    pr = min(1.0 - eps, max(eps, math.exp(rejected_logp)))", "replace": "    pc = min(1.0 - eps, max(eps, math.exp(min(chosen_logp, 88.0))))\n    pr = min(1.0 - eps, max(eps, math.exp(min(rejected_logp, 88.0))))"}]}
+
+**Reviewer**: APPROVE: The edit prevents a real OverflowError in orpo_odds_ratio by capping inputs to math.exp at 88.0. This is harmless because the outer min/max clamp already bounds the result to [eps, 1-eps], so any value yielding exp(x) >> 1 is redundant anyway. The search block matches the original file exactly, the replacement is valid Python, and the change directly addresses the Scanner-identified logic/stability bug.
+
+---
