@@ -138,3 +138,4 @@
 - **REJECTED by Reviewer**: Executor submitted empty edits on HADNX after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — must find real bugs or substantive cleanup.
 - **Repo: dancars**: [LOGIC] Fix contradictory null-guard and flickering header visibility in updateHeaderForScroll. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: nextphase-realestate**: [SEC] Add file type validation to upload endpoint. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **Repo: DR-OPIC**: [LOGIC] Prevent OverflowError in orpo_odds_ratio by capping log-probability inputs. (Ref: disabled - email spam) - *Status: SKIPPED*
