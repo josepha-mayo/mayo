@@ -6462,3 +6462,49 @@ The most critical issue is the use of `GetDiskFreeSpaceA` in `sysinfo.c`. This i
 **Reviewer**: CORRECT: The Executor's intent and type-safety improvements are valid, but the refactor introduces a regression: by moving the cache assignment inside the `try` block, `trending` can remain `null` if `DATABASE_URL` is missing or the query fails on a cold start. The return statement immediately calls `trending.length`, which would throw a runtime TypeError. A simple fallback to `[]` when `trending` is still null after the block fixes this without reintroducing the old 'cache empty failure' bug.
 
 ---
+
+## Cycle 1782604163
+**Scanner**: ### Step 1: Codebase Understanding
+The repository is a professional portfolio website for "dancars," likely an architecture or construction firm, showcasing projects and providing a contact method. The target file, script.js, handles the frontend interactivity, including mobile navigation, a scroll-responsive header, reveal-on-scroll animations, and a contact form that generates a mailto link. The codebase uses vanilla JavaScript, Lucide icons, and CSS classes for state management.
+
+### Step 2: Deep Analysis
+
+- Security: The contact form uses `encodeURIComponent` for the mailto link, which prevents basic URI injection. However, there is no client-side validation for the "reply" field to ensure it is a valid email or phone number, though this is a UX issue rather than a critical security vulnerability.
+- Logic: 
+    1. In `updateHeaderForScroll`, there is a contradictory null-guard: `if (!siteHeader) { siteHeader?.classList.remove(...) }`. If `siteHeader` is null, the code inside the block attempts to call a method on it using optional chaining, which does nothing, but the logic is redundant and confusing.
+    2. The `updateHeaderForScroll` logic for `is-hidden` creates a flickering effect. When `scrolled` is true, it immediately adds `is-hidden`, then sets a timeout to remove it after 160ms. This means every time the user scrolls, the header disappears and reappears rapidly, which is likely a bug in the intended "hide on scroll down, show on scroll up" behavior.
+- Performance: The `scroll` event listener is marked as `passive: true`, which is good for performance.
+- Architecture: The `renderIcons` function is called frequently (on every nav toggle and page load). While Lucide is efficient, calling `createIcons()` repeatedly on the whole document can be optimized.
+- Features: The contact form relies on `window.location.href = mailto:...`. This is a fragile pattern as it depends on the user having a default mail client configured; it provides no feedback if the action fails.
+- Testing: No formal tests.
+- DX: No README or build instructions, but as a static site, this is standard.
+- Consistency: Naming is consistent (camelCase).
+- Dead Code: None identified.
+
+### Step 3: Pick ONE Improvement
+
+The most significant logic bug is the flickering header behavior in `updateHeaderForScroll`. The current implementation adds `is-hidden` whenever the user has scrolled more than 24px, and then removes it 160ms later regardless of scroll direction. This results in a flashing header during any scroll activity, which is a broken UI experience. A proper implementation should hide the header when scrolling down and show it when scrolling up.
+
+### Step 4: Write the Executor's Plan
+
+WHAT: Fix the broken header visibility logic in the `updateHeaderForScroll` function to prevent the header from flickering/flashing during scroll.
+
+WHERE: In `script.js`, inside the `updateHeaderForScroll` function. Specifically, the logic starting from `if (!scrolled) { ... }` down to the `window.setTimeout` block.
+
+WHY: The current code adds the `is-hidden` class whenever the page is scrolled past 24px and then removes it after a short delay. This causes the header to blink on and off during every scroll event, which is a functional UI bug. The intended behavior for this pattern is typically to hide the header when the user scrolls down (to save screen space) and reveal it when they scroll up (to provide navigation).
+
+HOW:
+1. Create a variable outside the `updateHeaderForScroll` function (at the top level with other state variables) to track the last scroll position (e.g., `lastScrollY`).
+2. Inside `updateHeaderForScroll`, determine the current scroll position using `window.scrollY`.
+3. Compare the current scroll position to `lastScrollY`.
+4. If the current position is greater than the last position (scrolling down) and the page is scrolled past 24px, add the `is-hidden` class.
+5. If the current position is less than the last position (scrolling up), remove the `is-hidden` class.
+6. Update `lastScrollY` to the current scroll position at the end of the function.
+7. Remove the `window.setTimeout` and `navScrollTimer` logic entirely as they are the cause of the flickering.
+8. Fix the redundant null-guard at the start of the function: if `!siteHeader` is true, simply `return` immediately without attempting to call `classList.remove` on a null object.
+
+**Executor**: {"title": "[LOGIC] Fix flickering header visibility on scroll", "body": "### Problem / Gap\nThe header flashes on and off during any scroll because the `updateHeaderForScroll` function adds `is-hidden` immediately when scrolled past 24px and removes it after a 160ms timeout, regardless of scroll direction.\n\n### Solution & Insight\nReplaced the timeout-based logic with a scroll-direction-aware approach: track the last scroll position, hide the header when scrolling down past 24px, and show it when scrolling up. Also fixed the redundant null-guard to return early without calling methods on a null element.\n\n### Impact\nEliminates the distracting flicker, providing a smooth hide-on-scroll-down, show-on-scroll-up behavior that matches user expectations.", "branch_name": "bot/upgrade-1782604163", "edits": [{"file": "script.js", "search": "let navScrollTimer;", "replace": "let lastScrollY = 0;"}, {"file": "script.js", "search": "function updateHeaderForScroll() {\n  if (!siteHeader) {\n    siteHeader?.classList.remove(\"is-hidden\", \"is-compact\");\n    return;\n  }\n\n  const scrolled = window.scrollY > 24;\n  siteHeader.classList.toggle(\"is-compact\", scrolled);\n\n  if (!scrolled) {\n    siteHeader.classList.remove(\"is-hidden\");\n    return;\n  }\n\n  siteHeader.classList.add(\"is-hidden\");\n  window.clearTimeout(navScrollTimer);\n  navScrollTimer = window.setTimeout(() => {\n    siteHeader.classList.remove(\"is-hidden\");\n  }, 160);\n}", "replace": "function updateHeaderForScroll() {\n  if (!siteHeader) return;\n\n  const currentScrollY = window.scrollY;\n  const scrolled = currentScrollY > 24;\n  siteHeader.classList.toggle(\"is-compact\", scrolled);\n\n  if (!scrolled) {\n    siteHeader.classList.remove(\"is-hidden\");\n    lastScrollY = currentScrollY;\n    return;\n  }\n\n  if (currentScrollY > lastScrollY) {\n    siteHeader.classList.add(\"is-hidden\");\n  } else if (currentScrollY < lastScrollY) {\n    siteHeader.classList.remove(\"is-hidden\");\n  }\n\n  lastScrollY = currentScrollY;\n}"}]}
+
+**Reviewer**: APPROVE: The edits correctly fix the contradictory null-guard and replace the broken flickering header logic with a proper scroll-direction-aware implementation. The search blocks match the original file exactly, and the replacement is valid, production-ready JavaScript.
+
+---
