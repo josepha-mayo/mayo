@@ -152,3 +152,4 @@
 - **REJECTED by Reviewer**: Executor repeated empty-edit submission on HADNX after NO_ACTIONABLE verdict; blocked again for lack of substance.
 - **Repo: temple-sysinfo**: [LOGIC] Replace deprecated GetDiskFreeSpaceA with GetDiskFreeSpaceExA for large disk support. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: git-pulse**: [LOGIC] Fix type safety and cache resilience in trending tags. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **Repo: dancars**: [LOGIC] Fix flickering header visibility on scroll. (Ref: disabled - email spam) - *Status: SKIPPED*
