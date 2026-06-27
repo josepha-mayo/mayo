@@ -148,3 +148,4 @@
 - **REJECTED by Reviewer**: Repo Joseph-Portfolio bans trivial single-line favicon/image placeholder fixes; must bundle with substantive logic improvements or real bugs.
 - **REJECTED by Reviewer**: Executor repeated banned trivial single-line favicon placeholder fix on Joseph-Portfolio; blocked for triviality and prior rejection on this repo. Must bundle with substantive logic improvements.
 - **REJECTED by Reviewer**: Executor submitted empty edits on Kelegam-Tech again after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance — empty edits are never acceptable on this repo.
+- **REJECTED by Reviewer**: Repo: HADNX — Executor submitted empty edits again after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Must find real bugs or substantive cleanup.
