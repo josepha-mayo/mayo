@@ -154,3 +154,4 @@
 - **Repo: git-pulse**: [LOGIC] Fix type safety and cache resilience in trending tags. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: dancars**: [LOGIC] Fix flickering header visibility on scroll. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor submitted empty edits after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable.
+- **REJECTED by Reviewer**: Repo: Alexcathe — Executor proposed trivial constant-hoisting refactor and comment removal after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Must respect NO_ACTIONABLE verdicts.
