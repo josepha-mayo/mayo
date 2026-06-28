@@ -160,3 +160,4 @@
 - **Repo: model-unfetter**: [LOGIC] Fix dtype mismatch crash in GPU backend ablation. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor submitted empty edits again after NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable.
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor submitted empty edits after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable on this repo.
+- **Repo: IntellectSafe**: [LOGIC] Fix incorrect port in Welcome.tsx Quick Start guide. (Ref: disabled - email spam) - *Status: SKIPPED*
