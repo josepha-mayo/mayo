@@ -155,3 +155,4 @@
 - **Repo: dancars**: [LOGIC] Fix flickering header visibility on scroll. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor submitted empty edits after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable.
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor proposed trivial constant-hoisting refactor and comment removal after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Must respect NO_ACTIONABLE verdicts.
+- **REJECTED by Reviewer**: Repo DR-OPIC: Executor repeated empty no-edit submission after Scanner's NO_ACTIONABLE verdict; blocked again for lack of substance. Must find real bugs or substantive cleanup.
