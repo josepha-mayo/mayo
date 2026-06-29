@@ -163,3 +163,4 @@
 - **Repo: IntellectSafe**: [LOGIC] Fix incorrect port in Welcome.tsx Quick Start guide. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: git-pulse**: [LOGIC] Remove premature mark-as-read on notifications page load. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: HADNX**: [SEC] Add ownership validation to compliance report views to prevent BOLA. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **Repo: SWARMs-Debate-Primitive**: [LOGIC] Fix consensus matching to use stance comparison instead of strict string equality. (Ref: disabled - email spam) - *Status: SKIPPED*
