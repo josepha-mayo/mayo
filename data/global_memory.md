@@ -162,3 +162,4 @@
 - **REJECTED by Reviewer**: Repo: Alexcathe — Executor submitted empty edits after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable on this repo.
 - **Repo: IntellectSafe**: [LOGIC] Fix incorrect port in Welcome.tsx Quick Start guide. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: git-pulse**: [LOGIC] Remove premature mark-as-read on notifications page load. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **Repo: HADNX**: [SEC] Add ownership validation to compliance report views to prevent BOLA. (Ref: disabled - email spam) - *Status: SKIPPED*
