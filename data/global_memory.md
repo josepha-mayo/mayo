@@ -165,3 +165,4 @@
 - **Repo: HADNX**: [SEC] Add ownership validation to compliance report views to prevent BOLA. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: SWARMs-Debate-Primitive**: [LOGIC] Fix consensus matching to use stance comparison instead of strict string equality. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: micro-edit**: [PERF] Avoid redundant realloc in syntax highlighting. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **Repo: VULNRIX**: [LOGIC] Return TLS_REQUIRED error for HTTPS port in http_get. (Ref: disabled - email spam) - *Status: SKIPPED*
