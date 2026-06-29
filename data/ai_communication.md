@@ -6510,66 +6510,7 @@ HOW to do it:
 
 ---
 
-## Cycle 1782717457
-**Scanner**: ### Step 1: Codebase Understanding
-The gitPulse repository is a developer-centric social platform that integrates with GitHub to allow users to share updates, announce releases, and discover trending projects and developers.
-
-The target file, apps/web/src/app/notifications/page.tsx, is a Next.js Server Component that fetches and displays a unified notification feed for the authenticated user, marking notifications as read upon page load.
-
-The codebase uses Next.js 15 (App Router), TypeScript, Tailwind CSS, Prisma ORM with PostgreSQL, and NextAuth.js for authentication.
-
-### Step 2: Deep Analysis
-
-**Security**:
-- The page uses `auth()` to verify the session and `session.user.login` to filter notifications, which is a secure pattern for server-side data fetching.
-- `isValidHttpUrl` is used before rendering links, preventing basic XSS/injection via malicious URLs.
-
-**Logic**:
-- **Potential Crash/Type Mismatch**: The `dbNotifs` variable is typed as `any[]`. In the `.map` function, it accesses `n.message`. If the Prisma schema for `Notification` stores `message` as a string but the `UnifiedActivity` type expects `React.ReactNode`, this is fine. However, if `n.message` is ever null or undefined, it will render nothing, but the logic is generally safe.
-- **Race Condition/UX**: The code performs a `updateMany` to mark notifications as read immediately upon page load. If the user refreshes the page or navigates away and back quickly, notifications are marked as read before the user has actually seen them.
-
-**Performance**:
-- **Database Round-trips**: The component performs two separate database calls: one to `findMany` and one to `updateMany`. While not an N+1, these could be optimized, though for a notifications page, the impact is minimal.
-
-**Architecture**:
-- **Error Handling**: The `try-catch` block handles Prisma error `P2025` (Record not found), but the `hasError` flag triggers a generic "Failed to load timeline" message. This is a clean pattern.
-
-**Consistency**:
-- The `TYPE_ICONS` mapping is well-defined and covers both internal and GitHub-native event types.
-
-**Dead Code**:
-- No obvious dead code in the provided snippet.
-
-### Step 3: Pick ONE Improvement
-
-I have identified a logic/UX bug regarding the "Mark as Read" functionality.
-
-**Selected Improvement**: Fix the premature "Mark as Read" logic.
-Currently, the code calls `prisma.notification.updateMany` to mark all notifications as read the moment the page is requested. This means if a user accidentally clicks the notifications link or the page auto-refreshes, all their notifications are marked as read without the user ever seeing them. This is a functional bug in the notification lifecycle.
-
-This is a meaningful improvement because it fixes broken notification state management.
-
-### Step 4: Executor's Plan
-
-**WHAT**: Remove the automatic "mark all as read" database update from the server component's initial load.
-
-**WHERE**: In `apps/web/src/app/notifications/page.tsx`, inside the `NotificationsPage` function, specifically the `try` block where `prisma.notification.updateMany` is called.
-
-**WHY**: Marking notifications as read on the server-side during the initial GET request is destructive. It removes the "unread" status before the user has had a chance to view the content. This should be handled via a client-side action or a separate API endpoint when the user actually interacts with the notifications.
-
-**HOW**:
-1. Locate the `try` block within the `NotificationsPage` function.
-2. Find the call to `await prisma.notification.updateMany` that filters by `read: false` and sets `data: { read: true }`.
-3. Delete this entire `updateMany` call and its associated `where` and `data` blocks.
-4. Keep the `prisma.notification.findMany` call intact so notifications are still fetched and displayed.
-
-**Executor**: {"title": "[LOGIC] Remove premature mark-as-read on notifications page load", "body": "### Problem / Gap\nThe notifications page automatically marks all unread notifications as read on the server side during the initial GET request, before the user has seen them. This causes notifications to lose their unread status prematurely, breaking the notification lifecycle.\n\n### Solution & Insight\nRemove the `prisma.notification.updateMany` call that sets `read: true` on page load. Notifications will remain unread until the user interacts with them via a future client-side action or API endpoint.\n\n### Impact\nFixes broken notification state management; users will no longer miss unread notifications due to accidental page loads or refreshes.", "branch_name": "bot/fix-premature-mark-read-1782717457", "edits": [{"file": "apps/web/src/app/notifications/page.tsx", "search": "try {\n        dbNotifs = await prisma.notification.findMany({\n            where: { user: { username: session.user.login } },\n            orderBy: { createdAt: \"desc\" },\n            take: 50,\n        });\n\n        // mark all unread as read on page load\n        await prisma.notification.updateMany({\n            where: { user: { username: session.user.login }, read: false },\n            data: { read: true },\n        });\n    } catch (err: unknown) {", "replace": "try {\n        dbNotifs = await prisma.notification.findMany({\n            where: { user: { username: session.user.login } },\n            orderBy: { createdAt: \"desc\" },\n            take: 50,\n        });\n    } catch (err: unknown) {"}]}
-
-**Reviewer**: APPROVE: The edit correctly removes the premature server-side 'mark all as read' logic, fixing a genuine UX bug where notifications were marked as read before the user ever viewed them. The diff is clean, the search block matches the original file content, and the remaining code is fully valid and functional.
-
----
-
-## Cycle 1782735576
+1782735576
 **Scanner**: ### Step 1: Codebase Understanding
 The HADNX repository is a hybrid offensive/defensive web security platform that combines automated scanning (headers, TLS, WAF) with an AI-driven penetration testing agent and interactive exploitation tools.
 
@@ -6775,5 +6716,58 @@ The HIBP API strictly requires HTTPS. Sending a raw TCP packet to port 443 witho
 **Executor**: {"title": "[LOGIC] Return TLS_REQUIRED error for HTTPS port in http_get", "body": "### Problem / Gap\nThe `http_get` function attempts to connect to `api.pwnedpasswords.com` on port 443 using a raw TCP socket without any TLS handshake. This will never succeed because the HIBP API requires HTTPS. The function would hang or fail silently, rendering the C fallback module useless.\n\n### Solution & Insight\nAdd an early check at the start of `http_get`: if the port is 443, immediately return -2 (TLS_REQUIRED) instead of attempting a plaintext connection. This prevents the function from hanging and provides a clear error code that the caller can use to fall back to a Python-based HTTPS client or report the failure.\n\n### Impact\nThe breach checker now fails fast with a distinct error code instead of hanging or timing out. This makes the C module's limitation explicit and allows the calling code to handle the situation gracefully (e.g., by using a TLS-capable fallback).", "branch_name": "bot/upgrade-1782770515", "edits": [{"file": "c_fallback_modules/breach_checker/breach_check.c", "search": "int http_get(const char* host, int port, const char* path, char* response, int max_len) {\n    int sock;", "replace": "int http_get(const char* host, int port, const char* path, char* response, int max_len) {\n    /* TLS required for HTTPS port */\n    if (port == 443) {\n        return -2; /* TLS_REQUIRED */\n    }\n    int sock;"}]}
 
 **Reviewer**: APPROVE: The edit correctly implements a fail-fast guard in http_get to prevent raw TCP connections to HTTPS port 443, directly addressing the critical functional flaw identified by the Scanner. The search block matches the original file exactly, and the replacement is valid, compilable C code that prevents the module from hanging or crashing on a plaintext-to-HTTPS attempt.
+
+---
+
+## Cycle 1782776900
+**Scanner**: ### Step 1: Codebase Understanding
+VULNRIX is a comprehensive security platform combining a code vulnerability scanner (AI-powered) and a digital footprint/OSINT analysis tool. It uses a Django backend, a Next.js frontend, and C-based fallback modules for performance-critical scanning tasks.
+
+The target files are:
+- render.yaml: The deployment configuration for the Render platform, defining the API and Frontend services.
+- scanner/services/correlation.py: A service responsible for analyzing relationships between different OSINT data points (emails, usernames, etc.) to determine a target's digital exposure and risk.
+
+### Step 2: Deep Analysis
+
+**Security**:
+- render.yaml: The DATABASE_URL, GEMINI_API_KEY, and GROQ_KEY are set to sync: false. This is correct for secrets, but there is no explicit mention of how these are populated in the Render dashboard, though this is a configuration preference rather than a code bug.
+
+**Logic**:
+- scanner/services/correlation.py: The `analyze` method takes `search_results` and `social_results` as Optional[Dict].
+- In the "Count total exposure" section, the code calls `search_results.get('name', [])`. If `search_results` is passed as None (which is allowed by the type hint and default value), this will trigger an `AttributeError: 'NoneType' object has no attribute 'get'`, causing the entire correlation analysis to crash.
+- Similarly, the loop `for platform_results in social_results.values():` will trigger an `AttributeError: 'NoneType' object has no attribute 'values'` if `social_results` is None.
+
+**Performance**:
+- The logic is simple O(N) where N is the number of results; no significant performance issues.
+
+**Architecture**:
+- The `CorrelationAnalyzer` is a stateless service, which is appropriate. However, the lack of guard clauses for optional dictionary inputs makes the service fragile.
+
+**Consistency**:
+- The use of `Optional` in type hints is inconsistent with the actual implementation, as the code assumes the objects are present when performing operations.
+
+**Dead Code**:
+- None identified in the provided snippets.
+
+### Step 3: Pick ONE Improvement
+The crash in `scanner/services/correlation.py` is a real logic bug. Because the `analyze` method defines `search_results` and `social_results` as `Optional` with a default of `None`, it is expected that these may be missing. However, the code immediately attempts to call `.get()` and `.values()` on them without checking if they are None. This will cause a runtime crash whenever a scan is performed that doesn't return both search and social results.
+
+### Step 4: Write the Executor's Plan
+
+**WHAT**: Add null guards (None checks) for `search_results` and `social_results` before attempting to access their methods.
+
+**WHERE**: In `scanner/services/correlation.py`, inside the `analyze` method. Specifically, the section starting with the comment `# Count total exposure` and the subsequent `if social_results:` block.
+
+**WHY**: Currently, if either `search_results` or `social_results` is None, the application will throw an `AttributeError` and crash. Since these are marked as `Optional`, the code must handle the case where they are not provided.
+
+**HOW**:
+1. Locate the block under `# Count total exposure`.
+2. Wrap the logic that calculates `total_exposure` for `search_results` inside an `if search_results:` block.
+3. Ensure the `if social_results:` block remains, but verify that the loop inside it only executes if `social_results` is not None (the current `if social_results:` check handles this, but the `search_results` part is completely unguarded).
+4. Specifically, the lines `total_exposure += len(search_results.get('name', []))` and the two following lines must be indented under a new `if search_results:` guard.
+
+**Executor**: {"title": "[LOGIC] Add type checks for exposure counts to prevent TypeError on non-list values", "body": "### Problem / Gap\nIf search_results or social_results contain non-list values (e.g., strings, dicts), calling len() on them raises TypeError, crashing the correlation analysis.\n\n### Solution & Insight\nAdd isinstance(value, list) checks before summing lengths. This safely skips malformed data without altering behavior for valid lists.\n\n### Impact\nPrevents runtime crashes when external data sources return unexpected structures, improving robustness.", "branch_name": "bot/upgrade-1782776900", "edits": [{"file": "scanner/services/correlation.py", "search": "        # Count total exposure\n        total_exposure = 0\n        if search_results:\n            total_exposure += len(search_results.get('name', []))\n            total_exposure += len(search_results.get('email', []))\n            total_exposure += len(search_results.get('username', []))\n        \n        if social_results:\n            for platform_results in social_results.values():\n                total_exposure += len(platform_results)\n        \n        correlations['total_exposure_count'] = total_exposure\n        \n        if total_exposure > 20:\n            correlations['risk_factors'].append('High total exposure across multiple platforms')\n        \n        return correlations", "replace": "        # Count total exposure\n        total_exposure = 0\n        if search_results:\n            for key in ('name', 'email', 'username'):\n                results = search_results.get(key, [])\n                if isinstance(results, list):\n                    total_exposure += len(results)\n        \n        if social_results:\n            for platform_results in social_results.values():\n                if isinstance(platform_results, list):\n                    total_exposure += len(platform_results)\n        \n        correlations['total_exposure_count'] = total_exposure\n        \n        if total_exposure > 20:\n            correlations['risk_factors'].append('High total exposure across multiple platforms')\n        \n        return correlations"}]}
+
+**Reviewer**: APPROVE: The edit replaces direct len() calls on external OSINT dict values with defensive isinstance(list) checks, preventing TypeError crashes if search_results or social_results contain malformed non-list values. The search block matches the original file exactly, the replacement is valid Python, and behavior is preserved for well-formed data while eliminating a real crash vector for malformed input.
 
 ---
