@@ -167,3 +167,4 @@
 - **Repo: micro-edit**: [PERF] Avoid redundant realloc in syntax highlighting. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: VULNRIX**: [LOGIC] Return TLS_REQUIRED error for HTTPS port in http_get. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Repo: VULNRIX — Executor submitted empty edits despite Scanner plan to fix correlation.py None guards; blocked for lack of substance. Empty edits are never acceptable.
+- **Repo: VULNRIX**: [LOGIC] Add type checks for exposure counts to prevent TypeError on non-list values. (Ref: disabled - email spam) - *Status: SKIPPED*
