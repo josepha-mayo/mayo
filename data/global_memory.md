@@ -166,3 +166,4 @@
 - **Repo: SWARMs-Debate-Primitive**: [LOGIC] Fix consensus matching to use stance comparison instead of strict string equality. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: micro-edit**: [PERF] Avoid redundant realloc in syntax highlighting. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: VULNRIX**: [LOGIC] Return TLS_REQUIRED error for HTTPS port in http_get. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **REJECTED by Reviewer**: Repo: VULNRIX — Executor submitted empty edits despite Scanner plan to fix correlation.py None guards; blocked for lack of substance. Empty edits are never acceptable.
