@@ -6673,3 +6673,56 @@ HOW to do it:
 **Reviewer**: APPROVE: The Executor correctly implements ownership validation across all four compliance report views to fix the identified BOLA/IDOR vulnerability. The search blocks match exactly, the replacement code is valid Django/DRF, and the fix is substantive, security-critical, and perfectly aligned with the Scanner's plan.
 
 ---
+
+## Cycle 1782759325
+**Scanner**: ### Step 1: Codebase Understanding
+The SWARMs-Debate-Primitive repository implements a multi-agent AI deliberation system where specialized agents debate agents reach a consensus and anchor the result to the Solana Devnet. The target file, AgentCard.tsx, is a React component responsible for displaying the state, stance, reasoning, and staking status of an individual agent within the deliberation arena. The codebase uses a modern stack: Next.js 16, React 19, Tailwind 4, and a Python FastAPI backend.
+
+### Step 2: Deep Analysis
+
+**Security**: No immediate vulnerabilities found in the provided frontend component. Input is primarily read-only from the backend.
+
+**Logic**: 
+- The `getStance` function uses a fragile regex-based approach to determine if an agent is "Supporting" or "Against". It relies heavily on the first 50 characters of the response. If an agent starts with a preamble (e.g., "After careful consideration, I believe that..."), the regex `^(no|not|never...)` will fail, potentially defaulting a strong "Against" position to "Neutral".
+- The `matchedConsensus` logic uses a strict `.toLowerCase().trim()` comparison between the agent's answer and the final answer. In a multi-agent LLM environment, "Yes" and "Yes, I agree" are functionally identical but will be marked as a mismatch, potentially leading to incorrect "slashed" labels for agents who actually agreed with the consensus.
+
+**Performance**: No significant performance bottlenecks in this component.
+
+**Architecture**: The component is well-structured, though the stance detection logic is coupled directly inside the component file rather than in a utility library.
+
+**Features**: Missing a way to handle cases where the LLM response is empty or malformed, which could lead to "Neutral" stances by default.
+
+**Testing**: No client-side validation for the `confidence` prop (which is expected to be a number) before calling `.toFixed()` or similar operations (though not explicitly called on confidence here, it is passed in).
+
+**DX**: The `personaColors` map is hardcoded; adding a new agent persona requires updating this map manually.
+
+**Consistency**: Consistent use of Tailwind 4 and Lucide icons.
+
+**Dead Code**: No obvious dead code in the provided snippet.
+
+### Step 3: Pick ONE Improvement
+
+The most critical logic bug is the `matchedConsensus` calculation. 
+
+Currently, the code performs a strict string equality check: `answer.trim().toLowerCase() === finalAnswer.trim().toLowerCase()`. Because LLMs generate natural language, the `finalAnswer` (the consensus) and the individual `answer` are rarely identical strings, even when they express the exact same stance. This results in agents being incorrectly labeled as "slashed" or failing to receive "reward pending" status despite being on the winning side of the debate. This is a functional failure of the "Staking/Reputation" visualization.
+
+### Step 4: Write the Executor's Plan
+
+**WHAT**: Replace the strict string equality check for consensus matching with a stance-based comparison.
+
+**WHERE**: In `frontend/src/components/AgentCard.tsx`, inside the `AgentCard` component body, specifically the line defining the `matchedConsensus` constant.
+
+**WHY**: Strict string comparison fails for natural language responses. If the consensus is "Yes" and the agent said "Yes, I support this", the current code marks it as a mismatch. Using the existing `getStance` logic to compare the agent's stance against the consensus stance ensures the reward/slash UI reflects the actual outcome of the debate.
+
+**HOW**:
+1. Locate the `matchedConsensus` constant definition.
+2. Remove the current logic that compares `answer` and `finalAnswer` as strings.
+3. Implement a new check that calculates the stance of the `finalAnswer` using the existing `getStance` function.
+4. Compare the result of `getStance(answer)` with the result of `getStance(finalAnswer)`.
+5. Set `matchedConsensus` to true if both stances are identical and not neutral (or simply if they match).
+
+**Executor**: {"title": "[LOGIC] Fix consensus matching to use stance comparison instead of strict string equality", "body": "### Problem / Gap\n\nThe `matchedConsensus` constant used strict string equality (`answer.trim().toLowerCase() === finalAnswer.trim().toLowerCase()`) to determine if an agent's answer matched the final consensus. Because LLMs generate natural language, functionally identical stances (e.g., \"Yes\" vs \"Yes, I support this\") were marked as mismatches, causing agents on the winning side to be incorrectly labeled as \"slashed\" or missing \"reward pending\" status.\n\n### Solution & Insight\n\nReplaced the strict string comparison with a stance\u2011based check using the existing `getStance` function. Now `matchedConsensus` is `true` when both the agent's answer and the final answer share the same non\u2011neutral stance (support/support or against/against). This ensures the reward/slash UI accurately reflects the debate outcome.\n\n### Impact\n\n- Agents who agree with the consensus in substance are correctly recognized as winners.\n- Eliminates false \"slashed\" labels for agents whose natural\u2011language response differs only in phrasing.\n- Improves trust in the staking/reputation visualization.", "branch_name": "bot/upgrade-1782759325", "edits": [{"file": "frontend/src/components/AgentCard.tsx", "search": "  const matchedConsensus = Boolean(answer && finalAnswer && answer.trim().toLowerCase() === finalAnswer.trim().toLowerCase());", "replace": "  const matchedConsensus = Boolean(answer && finalAnswer && getStance(answer) !== 'neutral' && getStance(answer) === getStance(finalAnswer));"}]}
+
+**Reviewer**: APPROVE: The edit replaces a fragile strict-string equality check with a stance-based comparison using the existing getStance() function. This directly fixes the critical logic bug where semantically identical LLM responses (e.g., 'Yes' vs 'Yes, I support this') were incorrectly marked as consensus mismatches, leading to wrong slashing/reward UI states. The search block matches exactly, the replacement is valid TypeScript, and it aligns perfectly with the Scanner's plan.
+
+---
