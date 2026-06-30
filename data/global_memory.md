@@ -171,3 +171,4 @@
 - **Repo: SWARMs-Debate-Primitive**: [LOGIC] Guard against empty vote tally in run_vote. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: DR-OPIC**: [LOGIC] Fix edit_ratio calculation when student rollouts are empty but repair exists. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: ModelFang: Executor proposed single-line fragile fallback fix in escalation.py; rejected for insubstantiality and KeyError risk when max_level is not in LEVEL_PREFIXES keys.
+- **Repo: ModelFang**: [LOGIC] Fix escalation fallback and clamp max_level to valid range. (Ref: disabled - email spam) - *Status: SKIPPED*
