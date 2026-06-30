@@ -169,3 +169,4 @@
 - **REJECTED by Reviewer**: Repo: VULNRIX — Executor submitted empty edits despite Scanner plan to fix correlation.py None guards; blocked for lack of substance. Empty edits are never acceptable.
 - **Repo: VULNRIX**: [LOGIC] Add type checks for exposure counts to prevent TypeError on non-list values. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: SWARMs-Debate-Primitive**: [LOGIC] Guard against empty vote tally in run_vote. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **Repo: DR-OPIC**: [LOGIC] Fix edit_ratio calculation when student rollouts are empty but repair exists. (Ref: disabled - email spam) - *Status: SKIPPED*
