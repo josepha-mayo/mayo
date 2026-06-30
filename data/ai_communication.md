@@ -6771,3 +6771,65 @@ The crash in `scanner/services/correlation.py` is a real logic bug. Because the 
 **Reviewer**: APPROVE: The edit replaces direct len() calls on external OSINT dict values with defensive isinstance(list) checks, preventing TypeError crashes if search_results or social_results contain malformed non-list values. The search block matches the original file exactly, the replacement is valid Python, and behavior is preserved for well-formed data while eliminating a real crash vector for malformed input.
 
 ---
+
+## Cycle 1782784594
+**Scanner**: ### Step 1: Codebase Understanding
+The SWARMs Debate Primitive is a multi-agent AI system that uses a swarm of specialized LLM agents to deliberate or vote on questions, anchoring the final consensus to the Solana blockchain as a verifiable record.
+
+The target files are:
+- contracts/programs/swarm_escrow/Cargo.toml: The manifest for a Solana program (Anchor framework) designed to handle escrow for the debate system.
+- core/vote.py: The logic for the "Vote" mechanism, where agents provide independent answers to reach a quorum-based decision.
+
+The codebase uses FastAPI for the backend, Next.js for the frontend, and the Anchor framework for Solana smart contracts.
+
+### Step 2: Deep Analysis
+
+Security:
+- No immediate hardcoded secrets in the provided files (they use config.py).
+- The Solana program manifest is standard.
+
+Logic:
+- In core/vote.py, the `run_vote` function uses `max(vote_tally, key=vote_tally.get)` to determine the winning answer. If the `responses` list is empty (e.g., if `create_agents` returns an empty list due to config issues or `num_agents=0`), `vote_tally` will be an empty dictionary. Calling `max()` on an empty dictionary raises a `ValueError: max() arg is an empty sequence`, which will crash the entire deliberation process.
+- The logic for `winning_answer` normalization is slightly fragile; it relies on `.strip().lower()` but doesn't handle cases where the LLM might return a non-string value in the "answer" field of the response dictionary, which would cause an `AttributeError`.
+
+Performance:
+- The `time.sleep(1)` in the loop is a naive way to handle rate limiting. While functional, it slows down the response time linearly with the number of agents.
+
+Architecture:
+- The `run_vote` function assumes `agent.generate_response_sync` always returns a dictionary with an "answer" key. If the LLM fails or returns a malformed response, `result.get('answer', 'N/A')` handles the print statement, but the subsequent tallying logic `r["response"].get("answer", "").strip().lower()` is safer. However, if `result` itself is None, it will crash.
+
+Consistency:
+- The codebase consistently uses a "mechanism" pattern (debate vs vote).
+
+Dead Code:
+- None identified in the provided snippets.
+
+### Step 3: Pick ONE Improvement
+I will fix the potential crash in `core/vote.py` when no votes are collected.
+
+CRITERIA CHECK:
+1. Real bug: Yes, `max()` on an empty sequence is a runtime crash.
+2. Fixes broken functionality: Yes, prevents the server from crashing if agent initialization fails or is configured to zero.
+3. Measurable impact: Crash prevention (Stability).
+
+### Step 4: Write the Executor's Plan
+
+WHAT to change:
+Add a guard clause to handle cases where no responses are collected before attempting to calculate the winning answer and confidence score.
+
+WHERE in the file:
+In `core/vote.py`, inside the `run_vote` function. Specifically, after the loop that populates the `responses` list and the line `vote_tally = dict(Counter(answers))`, but before the line `winning_answer_lower = max(vote_tally, key=vote_tally.get)`.
+
+WHY this matters:
+If `agents` is empty or all agents fail to return a response, `vote_tally` becomes an empty dictionary. Calling `max()` on an empty dictionary triggers a `ValueError`, causing the API request to fail with a 500 error and crashing the current session.
+
+HOW to do it:
+1. Immediately after the `vote_tally = dict(Counter(answers))` line, check if `vote_tally` is empty.
+2. If it is empty, return a failure dictionary instead of proceeding. The dictionary should indicate that no quorum was reached, the winning answer is "No responses collected", and the confidence score is 0.0.
+3. Ensure the return structure matches the expected output of `run_vote` (mechanism, question, responses, vote_tally, winning_answer, confidence_score, agent_count, quorum_reached).
+
+**Executor**: {"title": "[LOGIC] Guard against empty vote tally in run_vote", "body": "### Problem / Gap\nIf `create_agents` returns an empty list or all agents fail to produce a response, `vote_tally` becomes an empty dictionary. Calling `max()` on an empty dictionary raises a `ValueError`, crashing the API request with a 500 error.\n\n### Solution & Insight\nAdd a guard clause immediately after building `vote_tally`. If the tally is empty, return a failure dictionary with `winning_answer` set to \"No responses collected\", `confidence_score` 0.0, and `quorum_reached` False. This prevents the crash and provides a clear, structured error response.\n\n### Impact\nPrevents a runtime crash, improves stability, and ensures the API always returns a valid JSON response even when no votes are collected.", "branch_name": "bot/upgrade-1782784594", "edits": [{"file": "core/vote.py", "search": "    vote_tally = dict(Counter(answers))\n\n    # determine winner\n    winning_answer_lower = max(vote_tally, key=vote_tally.get)\n    winning_count = vote_tally[winning_answer_lower]", "replace": "    vote_tally = dict(Counter(answers))\n\n    # guard against empty tally (no responses collected)\n    if not vote_tally:\n        print(\"\\nNo votes collected \u2014 returning failure.\")\n        return {\n            \"mechanism\": \"vote\",\n            \"question\": question,\n            \"responses\": responses,\n            \"vote_tally\": {},\n            \"winning_answer\": \"No responses collected\",\n            \"confidence_score\": 0.0,\n            \"agent_count\": len(agents),\n            \"quorum_reached\": False,\n        }\n\n    # determine winner\n    winning_answer_lower = max(vote_tally, key=vote_tally.get)\n    winning_count = vote_tally[winning_answer_lower]"}]}
+
+**Reviewer**: APPROVE: The proposed guard clause correctly prevents a ValueError crash when max() is called on an empty vote_tally dictionary. The search block matches the original file exactly, the replacement is valid Python, and it aligns perfectly with the Scanner's plan to fix a real stability bug. The return structure is consistent with the function's expected output.
+
+---
