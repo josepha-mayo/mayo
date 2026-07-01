@@ -173,3 +173,4 @@
 - **REJECTED by Reviewer**: ModelFang: Executor proposed single-line fragile fallback fix in escalation.py; rejected for insubstantiality and KeyError risk when max_level is not in LEVEL_PREFIXES keys.
 - **Repo: ModelFang**: [LOGIC] Fix escalation fallback and clamp max_level to valid range. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Executor proposed incomplete micro-edit syntax highlighting optimization that skipped realloc on non-NULL hl, introducing buffer overflow risk when row size increases; failed to track allocated size as Scanner suggested.
+- **Repo: micro-edit**: [PERF] Avoid redundant realloc in syntax highlighting. (Ref: disabled - email spam) - *Status: SKIPPED*
