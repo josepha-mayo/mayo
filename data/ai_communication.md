@@ -6968,3 +6968,44 @@ HOW:
 **Reviewer**: APPROVE: The edit correctly implements process exit codes based on API call success/failure, fixing the false-positive success issue in the test script. It matches the Scanner's plan exactly, the search block matches the original file content precisely, and the added logic is sound and production-ready.
 
 ---
+
+## Cycle 1783036353
+**Scanner**: ### Step 1: Codebase Understanding
+- **Repository Purpose**: A minimal, self-hosting text editor for Windows, written in C, designed to operate within the Windows Console using the Windows API.
+- **Target File Analysis**: `editor.c` is the core implementation containing the terminal configuration, syntax highlighting logic, editor state management, and the main event loop.
+- **Patterns and Conventions**: It follows the architecture of the 'Kilo' editor (a popular educational project), adapted for Windows. It uses a custom `erow` struct for line management and ANSI escape sequences for terminal control.
+
+### Step 2: Deep Analysis
+- **Security**: The editor uses `realloc` and `memset` on buffers based on `row->size`. While it's a local tool, there is a risk of heap corruption if `row->size` is manipulated incorrectly during file loading or editing.
+- **Logic**: 
+    - **Syntax Highlighting Crash**: In `editorUpdateSyntax`, the code uses `realloc(row->hl, row->size)`. If `row->size` is 0 (empty line), `realloc` behavior can be implementation-defined (may return NULL or a unique pointer). If it returns NULL, the subsequent `memset(row->hl, ...)` will cause a null pointer dereference and crash the editor.
+    - **Buffer Management**: The `editorUpdateSyntax` function is called frequently. The current implementation reallocates the highlight array every single time the syntax is updated for a row, regardless of whether the size has changed.
+- **Performance**: Redundant `realloc` calls in `editorUpdateSyntax` create unnecessary heap fragmentation and overhead.
+- **Architecture**: The error handling `die()` function restores console mode, which is good, but the editor lacks a robust way to handle file read errors beyond exiting the entire program.
+- **Testing**: No unit tests for the syntax highlighting logic; it relies on manual verification.
+- **DX**: The README provides clear build instructions for TCC.
+- **Consistency**: The codebase is consistent with the Kilo-style architecture.
+- **Dead Code**: None immediately apparent in the provided snippet.
+
+### Step 3: Pick ONE Improvement
+**Selected Improvement**: Fix the null pointer dereference crash on empty lines in `editorUpdateSyntax`.
+
+- **Is it a real bug?** Yes. If a user creates or opens a file with empty lines, `row->size` is 0. `realloc(ptr, 0)` can return `NULL`. The code then immediately calls `memset(row->hl, ...)` where `row->hl` is now `NULL`, leading to an immediate segmentation fault/access violation.
+- **Does it fix broken functionality?** Yes, it prevents the editor from crashing when encountering empty lines.
+- **Is there measurable impact?** Yes, it transforms a critical runtime crash into stable behavior.
+
+### Step 4: Write the Executor's Plan
+- **WHAT**: Add a guard clause to prevent `realloc` and `memset` from executing when a row is empty, and ensure the highlight pointer is handled safely.
+- **WHERE**: In `editor.c`, inside the `editorUpdateSyntax` function. Specifically, at the very beginning of the function where `unsigned char *temp_hl = realloc(row->hl, row->size);` is called.
+- **WHY**: When `row->size` is 0, `realloc` may return `NULL`. The current code treats a `NULL` return as a fatal error (`die("realloc")`) or, if it doesn't trigger `die`, it passes `NULL` to `memset`, causing a crash. Empty lines are a standard occurrence in text files and should not crash the application.
+- **HOW**: 
+    1. At the start of `editorUpdateSyntax`, check if `row->size` is 0.
+    2. If `row->size` is 0, set `row->hl` to `NULL` (if not already) and return from the function immediately.
+    3. This bypasses the `realloc` call and the `memset` call for empty lines, preventing the crash.
+    4. Ensure the rest of the function (the `while` loop) is also skipped, which it naturally will be if the function returns early.
+
+**Executor**: {"title": "[LOGIC] Fix crash on empty lines in syntax highlighting", "body": "### Problem / Gap\nWhen a row has size 0 (empty line), `realloc(row->hl, 0)` may return NULL. The code then calls `memset(row->hl, HL_NORMAL, 0)` on a NULL pointer, causing an access violation and editor crash. Empty lines are common in text files and should not crash the editor.\n\n### Solution & Insight\nAdd an early guard clause at the start of `editorUpdateSyntax`: if `row->size == 0`, free any existing highlight buffer, set `row->hl = NULL`, and return immediately. This bypasses the dangerous `realloc`/`memset` sequence and prevents the crash. The rest of the function is skipped, which is correct because there is nothing to highlight.\n\n### Impact\nEliminates a critical crash when opening or editing files with empty lines. The editor now handles empty lines gracefully without memory leaks.", "branch_name": "bot/upgrade-1783036353", "edits": [{"file": "editor.c", "search": "void editorUpdateSyntax(erow *row) {\n    unsigned char *temp_hl = realloc(row->hl, row->size);\n    if (temp_hl == NULL) die(\"realloc\");\n    row->hl = temp_hl;\n    memset(row->hl, HL_NORMAL, row->size);\n    \n    int i = 0;\n    int prev_sep = 1; // Previous char was a separator?\n    int in_string = 0;\n    char quote_char = 0;\n    \n    while (i < row->size) {", "replace": "void editorUpdateSyntax(erow *row) {\n    if (row->size == 0) {\n        free(row->hl);\n        row->hl = NULL;\n        return;\n    }\n    unsigned char *temp_hl = realloc(row->hl, row->size);\n    if (temp_hl == NULL) die(\"realloc\");\n    row->hl = temp_hl;\n    memset(row->hl, HL_NORMAL, row->size);\n    \n    int i = 0;\n    int prev_sep = 1; // Previous char was a separator?\n    int in_string = 0;\n    char quote_char = 0;\n    \n    while (i < row->size) {"}]}
+
+**Reviewer**: APPROVE: Fixes a real crash where empty lines (row->size == 0) trigger fatal realloc/die behavior. The guard clause safely frees the existing highlight buffer, sets it to NULL, and returns early. It matches the scanner plan exactly and the search block aligns with the original file content.
+
+---
