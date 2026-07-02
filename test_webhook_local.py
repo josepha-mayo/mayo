@@ -86,6 +86,9 @@ try:
     sys.settrace(trace_calls)
     original_handle(payload)
     sys.settrace(None)
+    mock_issue.create_comment.assert_called()
+    bot.fetch_memory.assert_called()
+    bot.get_repo_structure.assert_called()
     print("Finished successfully")
 except Exception as e:
     import traceback
