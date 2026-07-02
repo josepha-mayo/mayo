@@ -181,3 +181,4 @@
 - **Repo: HADNX**: [LOGIC] Add score range validation to Scan model fields. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: opencode-mobile**: [LOGIC] Add failure exit code to test script. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Repo: josepha-mayo/josepha-mayo — Executor submitted empty edits after Scanner's NO_ACTIONABLE verdict; blocked for lack of substance. Empty edits are never acceptable.
+- **Repo: micro-edit**: [LOGIC] Fix crash on empty lines in syntax highlighting. (Ref: disabled - email spam) - *Status: SKIPPED*
