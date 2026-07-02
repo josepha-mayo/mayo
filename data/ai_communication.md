@@ -6663,69 +6663,7 @@ The crash in `scanner/services/correlation.py` is a real logic bug. Because the 
 
 ---
 
-## Cycle 1782784594
-**Scanner**: ### Step 1: Codebase Understanding
-The SWARMs Debate Primitive is a multi-agent AI system that uses a swarm of specialized LLM agents to deliberate or vote on questions, anchoring the final consensus to the Solana blockchain as a verifiable record.
-
-The target files are:
-- contracts/programs/swarm_escrow/Cargo.toml: The manifest for a Solana program (Anchor framework) designed to handle escrow for the debate system.
-- core/vote.py: The logic for the "Vote" mechanism, where agents provide independent answers to reach a quorum-based decision.
-
-The codebase uses FastAPI for the backend, Next.js for the frontend, and the Anchor framework for Solana smart contracts.
-
-### Step 2: Deep Analysis
-
-Security:
-- No immediate hardcoded secrets in the provided files (they use config.py).
-- The Solana program manifest is standard.
-
-Logic:
-- In core/vote.py, the `run_vote` function uses `max(vote_tally, key=vote_tally.get)` to determine the winning answer. If the `responses` list is empty (e.g., if `create_agents` returns an empty list due to config issues or `num_agents=0`), `vote_tally` will be an empty dictionary. Calling `max()` on an empty dictionary raises a `ValueError: max() arg is an empty sequence`, which will crash the entire deliberation process.
-- The logic for `winning_answer` normalization is slightly fragile; it relies on `.strip().lower()` but doesn't handle cases where the LLM might return a non-string value in the "answer" field of the response dictionary, which would cause an `AttributeError`.
-
-Performance:
-- The `time.sleep(1)` in the loop is a naive way to handle rate limiting. While functional, it slows down the response time linearly with the number of agents.
-
-Architecture:
-- The `run_vote` function assumes `agent.generate_response_sync` always returns a dictionary with an "answer" key. If the LLM fails or returns a malformed response, `result.get('answer', 'N/A')` handles the print statement, but the subsequent tallying logic `r["response"].get("answer", "").strip().lower()` is safer. However, if `result` itself is None, it will crash.
-
-Consistency:
-- The codebase consistently uses a "mechanism" pattern (debate vs vote).
-
-Dead Code:
-- None identified in the provided snippets.
-
-### Step 3: Pick ONE Improvement
-I will fix the potential crash in `core/vote.py` when no votes are collected.
-
-CRITERIA CHECK:
-1. Real bug: Yes, `max()` on an empty sequence is a runtime crash.
-2. Fixes broken functionality: Yes, prevents the server from crashing if agent initialization fails or is configured to zero.
-3. Measurable impact: Crash prevention (Stability).
-
-### Step 4: Write the Executor's Plan
-
-WHAT to change:
-Add a guard clause to handle cases where no responses are collected before attempting to calculate the winning answer and confidence score.
-
-WHERE in the file:
-In `core/vote.py`, inside the `run_vote` function. Specifically, after the loop that populates the `responses` list and the line `vote_tally = dict(Counter(answers))`, but before the line `winning_answer_lower = max(vote_tally, key=vote_tally.get)`.
-
-WHY this matters:
-If `agents` is empty or all agents fail to return a response, `vote_tally` becomes an empty dictionary. Calling `max()` on an empty dictionary triggers a `ValueError`, causing the API request to fail with a 500 error and crashing the current session.
-
-HOW to do it:
-1. Immediately after the `vote_tally = dict(Counter(answers))` line, check if `vote_tally` is empty.
-2. If it is empty, return a failure dictionary instead of proceeding. The dictionary should indicate that no quorum was reached, the winning answer is "No responses collected", and the confidence score is 0.0.
-3. Ensure the return structure matches the expected output of `run_vote` (mechanism, question, responses, vote_tally, winning_answer, confidence_score, agent_count, quorum_reached).
-
-**Executor**: {"title": "[LOGIC] Guard against empty vote tally in run_vote", "body": "### Problem / Gap\nIf `create_agents` returns an empty list or all agents fail to produce a response, `vote_tally` becomes an empty dictionary. Calling `max()` on an empty dictionary raises a `ValueError`, crashing the API request with a 500 error.\n\n### Solution & Insight\nAdd a guard clause immediately after building `vote_tally`. If the tally is empty, return a failure dictionary with `winning_answer` set to \"No responses collected\", `confidence_score` 0.0, and `quorum_reached` False. This prevents the crash and provides a clear, structured error response.\n\n### Impact\nPrevents a runtime crash, improves stability, and ensures the API always returns a valid JSON response even when no votes are collected.", "branch_name": "bot/upgrade-1782784594", "edits": [{"file": "core/vote.py", "search": "    vote_tally = dict(Counter(answers))\n\n    # determine winner\n    winning_answer_lower = max(vote_tally, key=vote_tally.get)\n    winning_count = vote_tally[winning_answer_lower]", "replace": "    vote_tally = dict(Counter(answers))\n\n    # guard against empty tally (no responses collected)\n    if not vote_tally:\n        print(\"\\nNo votes collected \u2014 returning failure.\")\n        return {\n            \"mechanism\": \"vote\",\n            \"question\": question,\n            \"responses\": responses,\n            \"vote_tally\": {},\n            \"winning_answer\": \"No responses collected\",\n            \"confidence_score\": 0.0,\n            \"agent_count\": len(agents),\n            \"quorum_reached\": False,\n        }\n\n    # determine winner\n    winning_answer_lower = max(vote_tally, key=vote_tally.get)\n    winning_count = vote_tally[winning_answer_lower]"}]}
-
-**Reviewer**: APPROVE: The proposed guard clause correctly prevents a ValueError crash when max() is called on an empty vote_tally dictionary. The search block matches the original file exactly, the replacement is valid Python, and it aligns perfectly with the Scanner's plan to fix a real stability bug. The return structure is consistent with the function's expected output.
-
----
-
-## Cycle 1782854435
+1782854435
 **Scanner**: ### Step 1: Codebase Understanding
 DR-OPIC is a framework for training Small Language Models (SLMs) on coding tasks using a "Domain-Routed On-Policy Iterative Correction" approach. It focuses on generating training data from real failures, verifying repairs, and calculating ZPD (Zone of Proximal Development) weights to optimize the learning curriculum.
 
@@ -6912,5 +6850,53 @@ HOW:
 **Executor**: {"title": "[LOGIC] Fix crash on empty lines in syntax highlighting", "body": "### Problem / Gap\nIn `editorUpdateSyntax`, `realloc(row->hl, row->size)` is called unconditionally. When `row->size` is 0 (empty line), `realloc` may return `NULL`, which triggers `die(\"realloc\")` and crashes the editor. Empty lines are common in text files, making this a critical stability bug.\n\n### Solution & Insight\nAdd a guard clause at the start of `editorUpdateSyntax`: if `row->size == 0`, free any existing highlight buffer, set `row->hl = NULL`, and return immediately. This avoids the dangerous `realloc(ptr, 0)` call and correctly handles empty lines without crashing.\n\n### Impact\nPrevents editor crashes when opening or editing files containing empty lines. No functional change for non-empty lines; all existing syntax highlighting behavior is preserved.", "branch_name": "bot/upgrade-1782950350", "edits": [{"file": "editor.c", "search": "void editorUpdateSyntax(erow *row) {\n    unsigned char *temp_hl = realloc(row->hl, row->size);\n    if (temp_hl == NULL) die(\"realloc\");\n    row->hl = temp_hl;\n    memset(row->hl, HL_NORMAL, row->size);\n    \n    int i = 0;\n    int prev_sep = 1; // Previous char was a separator?\n    int in_string = 0;\n    char quote_char = 0;\n    \n    while (i < row->size) {", "replace": "void editorUpdateSyntax(erow *row) {\n    if (row->size == 0) {\n        free(row->hl);\n        row->hl = NULL;\n        return;\n    }\n    unsigned char *temp_hl = realloc(row->hl, row->size);\n    if (temp_hl == NULL) die(\"realloc\");\n    row->hl = temp_hl;\n    memset(row->hl, HL_NORMAL, row->size);\n    \n    int i = 0;\n    int prev_sep = 1; // Previous char was a separator?\n    int in_string = 0;\n    char quote_char = 0;\n    \n    while (i < row->size) {"}]}
 
 **Reviewer**: APPROVE: The edit adds a correct guard clause for empty rows in `editorUpdateSyntax`, preventing a potential crash when `realloc(row->hl, 0)` returns NULL. The search block matches the original file exactly, the diff is clean and non-destructive, and the fix aligns perfectly with the Scanner's plan.
+
+---
+
+## Cycle 1783007871
+**Scanner**: Step 1: Codebase Understanding
+The IntellectSafe repository is a comprehensive AI safety and security platform designed to protect users and systems from prompt injections, hallucinations, and deepfakes using a multi-layered defense architecture and an LLM Council.
+
+The target file ScanOutput.tsx is a frontend page that allows users to manually input an LLM's response (and optionally the original prompt) to be analyzed by the backend safety scanner for risks and hallucinations.
+
+The codebase uses a modern TypeScript/React stack with Tailwind CSS for styling, Lucide-style UI components (Card, Button), and a centralized API utility layer.
+
+Step 2: Deep Analysis
+Security: The frontend does not perform any input sanitization before sending data to the API, though the backend is expected to handle this. There are no hardcoded secrets in the provided file.
+
+Logic: The handleScan function uses a try-catch block, but the error handling is limited to a generic alert. If the API returns a 4xx or 5xx error with a specific error message in the body, that information is lost to the user.
+
+Performance: The component is lightweight. No redundant renders or memory leaks are evident in the current implementation.
+
+Architecture: The result display is binary (either null or present). There is no state for "Error" other than the alert, meaning the UI doesn't reflect a failed state visually.
+
+Features: The risk score is displayed as a raw number. Given the platform's "55% Block Threshold" mentioned in the README, the UI fails to visually indicate if the score has crossed this critical safety threshold (e.g., via color coding).
+
+Testing: The handleScan function checks for empty output, but it does not validate the length or format of the input, which could lead to oversized request payloads.
+
+Consistency: The styling is consistent with the rest of the UI components.
+
+Dead Code: No unused variables or unreachable branches found.
+
+Step 3: Pick ONE Improvement
+The most meaningful improvement is the lack of visual safety thresholding. The README explicitly defines a "55% Block Threshold" as a core part of the Level 5 Smart Control. However, ScanOutput.tsx simply displays the risk score as a number. For a safety-critical tool, a score of 60/100 should be visually flagged as "Dangerous/Blocked" rather than just being a number. This is a functional gap between the platform's defined safety logic and its user interface.
+
+Step 4: Write the Executor's Plan
+WHAT to change: Implement dynamic color-coding for the Risk Score and Verdict based on the 55% safety threshold defined in the system architecture.
+
+WHERE in the file: In frontend/src/pages/ScanOutput.tsx, inside the result rendering block, specifically where the Risk Score and Verdict are displayed (the div containing result.risk_score.toFixed(1)).
+
+WHY this matters: The platform's core logic relies on a 55% threshold to determine if content should be blocked. Displaying this as a neutral number forces the user to manually calculate the risk level, which is prone to error and inconsistent with the "Smart Control" feature described in the documentation.
+
+HOW to do it:
+1. Locate the JSX block that renders the Risk Score: result.risk_score.toFixed(1).
+2. Create a logic check to determine if result.risk_score is greater than or equal to 55.
+3. Apply a conditional Tailwind CSS class to the Risk Score text: use a red color (e.g., text-red-500) if the score is >= 55, and a green or muted color (e.g., text-green-500) if it is below 55.
+4. Apply similar conditional coloring to the Verdict text: if the verdict is 'unsafe' or 'block' (or if the score is >= 55), color it red; otherwise, use a safe color.
+5. Ensure the logic uses the exact 55 threshold to align with the global system specifications.
+
+**Executor**: {"title": "[FEAT] Color-code risk score and verdict based on 55% safety threshold", "body": "### Problem / Gap\nThe platform's core safety logic relies on a 55% risk threshold to determine if content should be blocked, but the ScanOutput UI displays the risk score as a neutral number without any visual indication of whether the threshold has been crossed. Users must manually compare the score to the threshold, which is error-prone and inconsistent with the documented \"Smart Control\" feature.\n\n### Solution & Insight\nAdd conditional Tailwind CSS classes to the Risk Score and Verdict display elements. When `risk_score >= 55` (or the verdict is `'unsafe'`/`'block'`), the text is colored red (`text-red-500`); otherwise, it is colored green (`text-green-500`). This provides immediate visual feedback aligned with the system's 55% block threshold.\n\n### Impact\nUsers can instantly see whether a scanned output is dangerous without manual calculation, improving safety awareness and UX consistency with the platform's documented architecture.", "branch_name": "bot/upgrade-1783007871", "edits": [{"file": "frontend/src/pages/ScanOutput.tsx", "search": "            <div className=\"grid grid-cols-2 gap-4\">\n              <div>\n                <p className=\"text-sm text-muted-foreground\">Verdict</p>\n                <p className=\"text-lg font-semibold capitalize\">{result.verdict}</p>\n              </div>\n              <div>\n                <p className=\"text-sm text-muted-foreground\">Risk Score</p>\n                <p className=\"text-lg font-semibold\">{result.risk_score.toFixed(1)} / 100</p>\n              </div>\n            </div>", "replace": "            <div className=\"grid grid-cols-2 gap-4\">\n              <div>\n                <p className=\"text-sm text-muted-foreground\">Verdict</p>\n                <p className={`text-lg font-semibold capitalize ${result.risk_score >= 55 || result.verdict === 'unsafe' || result.verdict === 'block' ? 'text-red-500' : 'text-green-500'}`}>{result.verdict}</p>\n              </div>\n              <div>\n                <p className=\"text-sm text-muted-foreground\">Risk Score</p>\n                <p className={`text-lg font-semibold ${result.risk_score >= 55 ? 'text-red-500' : 'text-green-500'}`}>{result.risk_score.toFixed(1)} / 100</p>\n              </div>\n            </div>"}]}
+
+**Reviewer**: APPROVE: The edit precisely implements the Scanner's plan to add visual safety thresholding at the 55% block limit. The search block matches the original file exactly, the replacement is valid TSX, and it closes a real functional gap between the backend safety logic and the UI presentation.
 
 ---
