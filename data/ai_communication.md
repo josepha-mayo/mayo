@@ -6877,3 +6877,40 @@ HOW:
 **Reviewer**: APPROVE: The diff preview shows a clean, substantive performance fix that matches the Scanner's plan. Adding `hl_alloc` to `erow` and conditionally calling `realloc` in `editorUpdateSyntax` avoids redundant heap allocations during frequent syntax highlighting updates. The search blocks match the original file content and the replacement is valid, compilable C. The `hl == NULL` guard ensures the new `hl_alloc` field is initialized on first use even if rows are not zeroed.
 
 ---
+
+## Cycle 1782950350
+**Scanner**: ### Step 1: Codebase Understanding
+- **Repository Purpose**: A minimal, self-hosting text editor for Windows, written in C, utilizing the Windows Console API to provide a lightweight editing experience with basic syntax highlighting and search.
+- **Target File (`editor.c`)**: The core implementation of the editor, containing the terminal configuration (raw mode), memory management for text rows, syntax highlighting logic, and the main event loop.
+- **Patterns/Conventions**: Based on the 'Kilo' editor architecture. It uses a global configuration struct (`editorConfig E`) to maintain state and ANSI escape sequences for terminal control.
+
+### Step 2: Deep Analysis
+- **Security**: The editor uses `realloc` and `memset` on buffers based on `row->size`. While it's a local tool, there is a risk of heap corruption if `row->size` is manipulated incorrectly during file loading or editing.
+- **Logic**: 
+    - **Syntax Highlighting Truncation**: The provided source code for `editorUpdateSyntax` is physically truncated in the prompt (ending at `prev_`). This indicates a potential logic gap or incomplete implementation in the actual file if the `prev_sep` logic isn't closed.
+    - **Buffer Management**: The `editorUpdateSyntax` function calls `realloc(row->hl, row->size)`. If `row->size` is 0 (empty line), `realloc` behavior can be implementation-defined (may return NULL or a unique pointer), which could trigger the `die("realloc")` call and crash the editor on empty lines.
+- **Performance**: 
+    - **Redundant Reallocations**: `editorUpdateSyntax` is called frequently. Reallocating the highlight array every time the syntax is updated for a row is inefficient.
+    - **Memory Leak**: `editorUnloadNRows` frees the rows, but if the editor exits via `die()`, it calls `editorUnloadNRows` and then `exit(1)`. However, the `E.filename` and `E.search_query` strings (if allocated) are never freed.
+- **Architecture**: The error handling is "fail-fast" via the `die()` function, which is appropriate for a minimal tool but lacks graceful recovery.
+- **DX**: The README provides clear build instructions for TCC.
+
+### Step 3: Pick ONE Improvement
+**Selected Improvement**: Fix the potential crash/instability in `editorUpdateSyntax` regarding `realloc` and buffer size.
+
+**Justification**: In C, calling `realloc` with a size of 0 can return `NULL`. In the current implementation of `editorUpdateSyntax`, if a line is empty (`row->size == 0`), `realloc` may return `NULL`, which immediately triggers `die("realloc")`, crashing the entire editor. This is a critical logic bug because empty lines are common in text files.
+
+### Step 4: Executor's Plan
+- **WHAT**: Add a guard clause to prevent `realloc` from being called when the row size is zero, and ensure the highlight pointer is handled correctly for empty lines.
+- **WHERE**: In `editor.c`, inside the `editorUpdateSyntax` function. Specifically, at the very beginning of the function where `unsigned char *temp_hl = realloc(row->hl, row->size);` is called.
+- **WHY**: To prevent the editor from crashing (via the `die` function) whenever it attempts to update syntax highlighting for an empty line, as `realloc(ptr, 0)` can return `NULL`.
+- **HOW**: 
+    1. Check if `row->size` is equal to 0 at the start of `editorUpdateSyntax`.
+    2. If it is 0, ensure `row->hl` is set to `NULL` (or handled as an empty allocation) and return from the function immediately, as there is no text to highlight.
+    3. Only proceed to the `realloc` and `memset` logic if `row->size` is greater than 0.
+
+**Executor**: {"title": "[LOGIC] Fix crash on empty lines in syntax highlighting", "body": "### Problem / Gap\nIn `editorUpdateSyntax`, `realloc(row->hl, row->size)` is called unconditionally. When `row->size` is 0 (empty line), `realloc` may return `NULL`, which triggers `die(\"realloc\")` and crashes the editor. Empty lines are common in text files, making this a critical stability bug.\n\n### Solution & Insight\nAdd a guard clause at the start of `editorUpdateSyntax`: if `row->size == 0`, free any existing highlight buffer, set `row->hl = NULL`, and return immediately. This avoids the dangerous `realloc(ptr, 0)` call and correctly handles empty lines without crashing.\n\n### Impact\nPrevents editor crashes when opening or editing files containing empty lines. No functional change for non-empty lines; all existing syntax highlighting behavior is preserved.", "branch_name": "bot/upgrade-1782950350", "edits": [{"file": "editor.c", "search": "void editorUpdateSyntax(erow *row) {\n    unsigned char *temp_hl = realloc(row->hl, row->size);\n    if (temp_hl == NULL) die(\"realloc\");\n    row->hl = temp_hl;\n    memset(row->hl, HL_NORMAL, row->size);\n    \n    int i = 0;\n    int prev_sep = 1; // Previous char was a separator?\n    int in_string = 0;\n    char quote_char = 0;\n    \n    while (i < row->size) {", "replace": "void editorUpdateSyntax(erow *row) {\n    if (row->size == 0) {\n        free(row->hl);\n        row->hl = NULL;\n        return;\n    }\n    unsigned char *temp_hl = realloc(row->hl, row->size);\n    if (temp_hl == NULL) die(\"realloc\");\n    row->hl = temp_hl;\n    memset(row->hl, HL_NORMAL, row->size);\n    \n    int i = 0;\n    int prev_sep = 1; // Previous char was a separator?\n    int in_string = 0;\n    char quote_char = 0;\n    \n    while (i < row->size) {"}]}
+
+**Reviewer**: APPROVE: The edit adds a correct guard clause for empty rows in `editorUpdateSyntax`, preventing a potential crash when `realloc(row->hl, 0)` returns NULL. The search block matches the original file exactly, the diff is clean and non-destructive, and the fix aligns perfectly with the Scanner's plan.
+
+---
