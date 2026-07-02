@@ -6900,3 +6900,66 @@ HOW to do it:
 **Reviewer**: APPROVE: The edit precisely implements the Scanner's plan to add visual safety thresholding at the 55% block limit. The search block matches the original file exactly, the replacement is valid TSX, and it closes a real functional gap between the backend safety logic and the UI presentation.
 
 ---
+
+## Cycle 1783013894
+**Scanner**: ### Step 1. Codebase Understanding
+Mayo is an autonomous maintenance engine that uses a triple-AI pipeline (Scanner, Executor, Reviewer) to analyze GitHub repositories and automatically submit high-value code improvements via PRs. It features a cross-repo global memory system to learn from past successes and failures.
+
+The target files are:
+- data/global_memory.md: A persistent log of lessons learned, rejected edits, and successful merges across all managed repositories.
+- test_webhook_local.py: A local testing script used to simulate GitHub webhook events (specifically issue comments) to verify the bot's logic without deploying to Vercel.
+
+The codebase uses Python for the backend, integrates with the GitHub API via PyGithub (implied by the mock patterns), and utilizes a custom search/replace block system for surgical code edits.
+
+### 2. Deep Analysis
+
+**Security**:
+- test_webhook_local.py: The script checks for GEMINI_API_KEY and GITHUB_TOKEN in environment variables but only prints a warning. While acceptable for a local test script, it doesn't stop execution, which could lead to confusing NoneType errors later in the trace.
+
+**Logic**:
+- test_webhook_local.py: The mock setup for `mock_issue.get_comments` returns a list of mocks. However, the `payload` provided to `original_handle(payload)` contains a `comment` object with ID 123456789. The mock `mock_current_comment` also has ID 123456789. The logic in `api/index.py` (which this tests) likely relies on comparing the payload comment to the issue's comment history to determine if the bot should respond.
+- test_webhook_local.py: The `trace_calls` function is used to debug `handle_issue_comment`. However, the script imports `api.index as bot` and then calls `original_handle(payload)`. If `handle_issue_comment` calls other internal functions (which it does), the trace only captures the top-level function, potentially missing the actual point of failure in the sub-logic.
+
+**Performance**:
+- No significant performance issues found in these specific files.
+
+**Architecture**:
+- test_webhook_local.py: The test is highly coupled to a specific payload. It mocks the GitHub client but doesn't verify if the bot actually attempts to post a comment or perform an action; it only checks if the function "finishes successfully" without crashing.
+
+**Testing**:
+- test_webhook_local.py: The test lacks assertions. It is a "smoke test" that checks for crashes but doesn't validate that the bot's logic actually triggered the expected workflow (e.g., calling the Scanner).
+
+**DX**:
+- data/global_memory.md: The file is becoming extremely large with repetitive "REJECTED by Reviewer" entries. While this is the intended "memory," the lack of categorization makes it harder for the Scanner to parse efficiently as the list grows.
+
+**Consistency**:
+- The mock setup in `test_webhook_local.py` is inconsistent with the payload. The payload says the repo is `HOLYKEYZ/joe-gemini`, but the mock `mock_issue` is just a generic `MagicMock`.
+
+**Dead Code**:
+- No dead code identified in these files.
+
+### 3. Pick ONE Improvement
+
+The most critical issue is in `test_webhook_local.py`. The script is designed to test the bot's response to a user comment, but it lacks any assertions to verify that the bot actually *did* something. Currently, if `handle_issue_comment` returns early due to a bug (e.g., failing a guard clause), the test still prints "Finished successfully." This creates a false sense of security, as the test passes even if the bot is functionally dead.
+
+This is a real logic/testing bug: a test that cannot fail even when the feature it tests is broken is worse than no test at all.
+
+### 4. Executor's Plan
+
+**WHAT**: Add functional assertions to `test_webhook_local.py` to verify that the bot actually attempts to interact with GitHub when a valid trigger comment is received.
+
+**WHERE**: In `test_webhook_local.py`, at the end of the `try` block, after the call to `original_handle(payload)`.
+
+**WHY**: Currently, the test only verifies that the code doesn't crash (smoke test). It does not verify that the bot's logic actually triggers the maintenance pipeline. If a bug causes the bot to ignore the "mayo, try this time" trigger, the test still reports success.
+
+**HOW**:
+1. Identify the mock object that represents the GitHub issue or repository (e.g., `mock_issue` or `mock_repo`).
+2. After `original_handle(payload)` is called, add an assertion to check if `mock_issue.create_comment` (or the equivalent method used in `api/index.py` to post responses) was called.
+3. Specifically, verify that the bot attempted to post a comment or initiate a process, ensuring the trigger logic in `handle_issue_comment` is functioning.
+4. If the bot is expected to call `bot.fetch_memory` or `bot.get_repo_structure` during a successful trigger, add assertions to verify those mocks were called.
+
+**Executor**: {"title": "[LOGIC] Add functional assertions to test_webhook_local.py", "body": "### Problem / Gap\nThe test_webhook_local.py smoke test only checks for crashes, not whether the bot actually responds to a trigger comment. If handle_issue_comment returns early due to a bug, the test still reports success, creating a false sense of security.\n\n### Solution & Insight\nAdd assertions after calling handle_issue_comment to verify that the bot attempted to interact with GitHub: mock_issue.create_comment is called, and the mocked fetch_memory and get_repo_structure functions are invoked. This ensures the trigger logic actually executes the maintenance pipeline.\n\n### Impact\nTransforms a passive smoke test into an active functional test that catches logic regressions where the bot silently ignores valid triggers.", "branch_name": "bot/upgrade-1783013894", "edits": [{"file": "test_webhook_local.py", "search": "try:\n    print(\"Testing handle_issue_comment locally with Mocks...\")\n    sys.settrace(trace_calls)\n    original_handle(payload)\n    sys.settrace(None)\n    print(\"Finished successfully\")\nexcept Exception as e:\n    import traceback\n    print(\"CRASHED:\")\n    traceback.print_exc()", "replace": "try:\n    print(\"Testing handle_issue_comment locally with Mocks...\")\n    sys.settrace(trace_calls)\n    original_handle(payload)\n    sys.settrace(None)\n    mock_issue.create_comment.assert_called()\n    bot.fetch_memory.assert_called()\n    bot.get_repo_structure.assert_called()\n    print(\"Finished successfully\")\nexcept Exception as e:\n    import traceback\n    print(\"CRASHED:\")\n    traceback.print_exc()"}]}
+
+**Reviewer**: APPROVE: The edit adds three functional assertions to a smoke test, converting it into a meaningful test that verifies the bot actually triggers its workflow (comment creation, memory fetch, repo structure fetch) on a valid issue comment. The search block matches exactly, the change is non-destructive, and it directly implements the Scanner's plan.
+
+---
