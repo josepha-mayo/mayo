@@ -179,3 +179,4 @@
 - **Repo: IntellectSafe**: [FEAT] Color-code risk score and verdict based on 55% safety threshold. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: mayo**: [LOGIC] Add functional assertions to test_webhook_local.py. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **Repo: HADNX**: [LOGIC] Add score range validation to Scan model fields. (Ref: disabled - email spam) - *Status: SKIPPED*
+- **Repo: opencode-mobile**: [LOGIC] Add failure exit code to test script. (Ref: disabled - email spam) - *Status: SKIPPED*
