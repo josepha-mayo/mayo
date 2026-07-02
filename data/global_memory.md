@@ -175,3 +175,4 @@
 - **REJECTED by Reviewer**: Executor proposed incomplete micro-edit syntax highlighting optimization that skipped realloc on non-NULL hl, introducing buffer overflow risk when row size increases; failed to track allocated size as Scanner suggested.
 - **Repo: micro-edit**: [PERF] Avoid redundant realloc in syntax highlighting. (Ref: disabled - email spam) - *Status: SKIPPED*
 - **REJECTED by Reviewer**: Executor proposed single-line `is None` -> `not` tweak on SWARMs-Debate-Primitive transcript.py; rejected as insubstantial since existing ternary already prevents the claimed IndexError.
+- **Repo: micro-edit**: [LOGIC] Fix crash on empty lines in syntax highlighting. (Ref: disabled - email spam) - *Status: SKIPPED*
