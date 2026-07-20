@@ -15,6 +15,10 @@ app = Flask(__name__)
 EXCLUDED_REPOS = ['Square-farms', 'Jo-ayanda-real-estate', 'Backend-images-app', 'ecom-stor']
 
 def co_author_msg(msg):
+    name = os.environ.get('CO_AUTHOR_NAME')
+    email = os.environ.get('CO_AUTHOR_EMAIL')
+    if name and email:
+        return f"{msg}\n\nCo-authored-by: {name} <{email}>"
     return msg
 
 # Config
